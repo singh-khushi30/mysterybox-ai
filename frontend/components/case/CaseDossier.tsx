@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { CaseOpeningExperience } from "@/components/three/CaseOpeningExperience";
 import { WaxSealButton } from "@/components/shared/WaxSealButton";
@@ -10,11 +11,11 @@ import { useViewportMode } from "@/hooks/useViewportMode";
 import type { CaseFile } from "@/types/case";
 
 export function CaseDossier({ caseFile }: { caseFile: CaseFile }) {
+  const router = useRouter();
   const mode = useViewportMode();
   const reducedMotion = usePrefersReducedMotion();
   const [opening, setOpening] = useState(reducedMotion);
   const [showDossier, setShowDossier] = useState(reducedMotion);
-  const [prepared, setPrepared] = useState(false);
 
   useEffect(() => {
     const openTimer = window.setTimeout(
@@ -139,21 +140,11 @@ export function CaseDossier({ caseFile }: { caseFile: CaseFile }) {
                 </section>
 
                 <div>
-                  <WaxSealButton onClick={() => setPrepared(true)}>
+                  <WaxSealButton
+                    onClick={() => router.push(`/cases/${caseFile.id}/investigate`)}
+                  >
                     Begin Investigation
                   </WaxSealButton>
-                  <AnimatePresence>
-                    {prepared && (
-                      <motion.p
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="mt-4 max-w-sm font-display text-lg text-beige/70 italic"
-                      >
-                        The investigation desk is being prepared. The next chapter
-                        opens here.
-                      </motion.p>
-                    )}
-                  </AnimatePresence>
                 </div>
               </div>
             </motion.section>
