@@ -1,14 +1,17 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion } from "framer-motion";
+import { useSyncExternalStore, type ReactNode } from "react";
+import { DeskPager } from "@/components/investigation/DeskPager";
 import { InvestigationNav } from "@/components/investigation/InvestigationNav";
 import { InvestigationTopbar } from "@/components/investigation/InvestigationTopbar";
+import { DustMotes } from "@/components/shared/DustMotes";
 import { getInvestigationStats } from "@/lib/investigation";
 import type { Case } from "@/types/investigation";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import { cn } from "@/lib/utils";
 
 export function InvestigationShell({
   caseFile,
@@ -19,12 +22,27 @@ export function InvestigationShell({
 }) {
   const pathname = usePathname();
   const reducedMotion = usePrefersReducedMotion();
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
   const stats = getInvestigationStats(caseFile);
+  const fullCanvas =
+    pathname.includes("/board") ||
+    pathname.includes("/interrogate") ||
+    pathname.includes("/result");
 
   return (
-    <div className="desk-blotter min-h-dvh">
+    <div className="desk-blotter relative min-h-dvh">
+      <DustMotes />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgb(196_160_106/7%),transparent_46%)]" />
-      <div className="relative mx-auto flex min-h-dvh max-w-[1400px] flex-col gap-6 px-4 py-5 md:px-8 lg:flex-row lg:gap-10">
+      <div
+        className={cn(
+          "relative mx-auto flex min-h-dvh flex-col gap-6 px-4 py-5 md:px-8 lg:flex-row lg:gap-10",
+          fullCanvas ? "max-w-[1600px]" : "max-w-[1400px]"
+        )}
+      >
         <aside className="lg:w-56 lg:shrink-0 lg:py-4">
           <Link
             href={`/cases/${caseFile.id}`}
@@ -37,20 +55,28 @@ export function InvestigationShell({
           </p>
           <InvestigationNav caseId={caseFile.id} />
         </aside>
-        <div className="flex min-w-0 flex-1 flex-col pb-10">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col pb-10">
+          <a
+            href="#desk-main"
+            className="sr-only focus:not-sr-only focus:absolute focus:z-20 focus:bg-burgundy focus:px-3 focus:py-2 focus:font-mono focus:text-xs focus:tracking-[0.2em] focus:text-paper focus:uppercase"
+          >
+            Skip to desk
+          </a>
           <InvestigationTopbar
             number={caseFile.number}
             title={caseFile.title}
             progress={stats.progress}
           />
           <motion.div
+            id="desk-main"
             key={pathname}
-            initial={reducedMotion ? false : { opacity: 0, y: 10 }}
+            initial={mounted && !reducedMotion ? { opacity: 0, y: 10 } : false}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35 }}
-            className="mt-8 flex-1"
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            className={cn("mt-8 flex-1", fullCanvas && "flex min-h-0 flex-col")}
           >
             {children}
+            <DeskPager caseFile={caseFile} />
           </motion.div>
         </div>
       </div>

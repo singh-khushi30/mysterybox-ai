@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
-import { EvidenceBoardLoader } from "@/components/board/EvidenceBoardLoader";
+import { ResultReveal } from "@/components/investigation/ResultReveal";
 import { getInvestigation } from "@/lib/investigation";
 
-export default async function BoardPage({
+export default async function ResultPage({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -10,5 +10,5 @@ export default async function BoardPage({
   const { id } = await params;
   const caseFile = getInvestigation(id);
   if (!caseFile) notFound();
-  return <EvidenceBoardLoader caseFile={caseFile} />;
+  return <ResultReveal caseFile={caseFile} />;
 }

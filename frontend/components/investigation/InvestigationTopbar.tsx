@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { Portrait } from "@/components/shared/Portrait";
 
@@ -31,13 +32,17 @@ export function InvestigationTopbar({
           <div className="h-[3px] overflow-hidden bg-brass/15">
             <motion.div
               className="h-full bg-brass"
-              initial={{ width: 0 }}
+              initial={false}
               animate={{ width: `${progress}%` }}
               transition={{ duration: 0.9, ease: "easeOut" }}
             />
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <Link
+          href="/profile"
+          className="flex items-center gap-2 rounded-sm transition-transform duration-300 hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-brass/70 focus-visible:outline-none"
+          aria-label="Open detective profile"
+        >
           <Portrait initials="KV" className="size-9 text-sm" />
           <div className="hidden sm:block">
             <p className="font-display text-sm text-paper">K. Vale</p>
@@ -45,7 +50,7 @@ export function InvestigationTopbar({
               Consulting detective
             </p>
           </div>
-        </div>
+        </Link>
       </div>
     </header>
   );

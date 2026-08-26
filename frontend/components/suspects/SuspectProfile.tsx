@@ -72,7 +72,7 @@ export function SuspectProfile({
           </h3>
           <p className="mt-3 font-display text-lg text-beige/55 italic">
             {suspect.questioned
-              ? "One preliminary interview is on file. The full interrogation desk opens next."
+              ? "A preliminary interview is on file. The chair is still available."
               : "No interrogation has been recorded. The chair is empty."}
           </p>
         </section>

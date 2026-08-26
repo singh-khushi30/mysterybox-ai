@@ -139,4 +139,112 @@
   .film-grain {
     opacity: 0.07;
   }
+
+  .dust-mote {
+    animation: none;
+    display: none;
+  }
+}
+
+.dust-mote {
+  position: absolute;
+  bottom: -10px;
+  border-radius: 999px;
+  background: rgb(231 217 195 / 32%);
+  animation-name: dust-rise;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes dust-rise {
+  0% {
+    transform: translateY(0) translateX(0);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.4;
+  }
+  100% {
+    transform: translateY(-105vh) translateX(18px);
+    opacity: 0;
+  }
+}
+
+.evidence-board {
+  background-color: #2a1b13;
+  background-image:
+    radial-gradient(ellipse at 18% 12%, rgb(120 78 42 / 40%), transparent 46%),
+    radial-gradient(ellipse at 82% 88%, rgb(40 22 16 / 55%), transparent 48%),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgb(0 0 0 / 5%) 4px
+    );
+}
+
+.evidence-flow,
+.evidence-flow .react-flow__renderer,
+.evidence-flow .react-flow__pane {
+  background: transparent !important;
+}
+
+.board-handle {
+  width: 9px !important;
+  height: 9px !important;
+  border: 1px solid #e7d9c3 !important;
+  background: #c4a06a !important;
+}
+
+.board-pin {
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  z-index: 2;
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  background: radial-gradient(circle at 30% 30%, #e7d9c3, #8a3a3a 55%, #5c2430);
+  box-shadow: 0 2px 4px rgb(0 0 0 / 45%);
+  transform: translateX(-50%);
+}
+
+.board-pin-paper {
+  background: radial-gradient(circle at 30% 30%, #f3eadc, #c4a06a 60%, #5c2430);
+}
+
+.evidence-flow .react-flow__controls {
+  overflow: hidden;
+  border: 1px solid rgb(196 160 106 / 30%);
+  background: rgb(20 17 14 / 92%);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 40%);
+}
+
+.evidence-flow .react-flow__controls-button {
+  border-bottom: 1px solid rgb(196 160 106 / 18%);
+  background: transparent;
+  fill: #d8c7ad;
+}
+
+.evidence-flow .react-flow__controls-button:hover {
+  background: rgb(92 36 48 / 55%);
+}
+
+.evidence-flow .react-flow__minimap {
+  overflow: hidden;
+  border: 1px solid rgb(196 160 106 / 25%);
+  background: #14110e !important;
+}
+
+.evidence-flow .react-flow__edge-path {
+  filter: drop-shadow(0 1px 0 rgb(0 0 0 / 35%));
+}
+
+.evidence-flow .react-flow__attribution {
+  display: none;
+}
+
+:focus-visible {
+  outline: 2px solid rgb(196 160 106 / 75%);
+  outline-offset: 2px;
 }

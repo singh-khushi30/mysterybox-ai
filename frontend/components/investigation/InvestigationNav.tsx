@@ -12,6 +12,7 @@ const links = [
   { href: "/board", label: "Evidence Board", index: "05" },
   { href: "/notes", label: "Notes", index: "06" },
   { href: "/solve", label: "Solve Case", index: "07" },
+  { href: "/result", label: "Results", index: "08" },
 ];
 
 export function InvestigationNav({ caseId }: { caseId: string }) {

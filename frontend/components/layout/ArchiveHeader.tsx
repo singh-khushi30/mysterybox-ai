@@ -14,9 +14,17 @@ export function ArchiveHeader({ kicker = "The Archive" }: { kicker?: string }) {
           {kicker}
         </h1>
       </div>
-      <p className="hidden max-w-xs text-right font-display text-lg text-beige/55 italic md:block">
-        Files are opened, never rushed.
-      </p>
+      <nav className="flex items-center gap-5">
+        <Link
+          href="/profile"
+          className="font-mono text-[0.62rem] tracking-[0.22em] text-brass/80 uppercase hover:text-brass"
+        >
+          Profile
+        </Link>
+        <p className="hidden max-w-xs text-right font-display text-lg text-beige/55 italic md:block">
+          Files are opened, never rushed.
+        </p>
+      </nav>
     </header>
   );
 }

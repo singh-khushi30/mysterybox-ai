@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { HeroExperience } from "@/components/three/HeroExperience";
 import { WaxSealButton } from "@/components/shared/WaxSealButton";
@@ -68,9 +69,16 @@ export function LandingView() {
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-ink/35 via-transparent to-ink/55" />
 
       <div className="relative z-10 flex min-h-dvh flex-col px-6 py-8 md:px-12">
-        <header className="flex items-center justify-between font-mono text-[0.62rem] tracking-[0.34em] text-brass/70 uppercase">
+        <header className="pointer-events-auto flex items-center justify-between font-mono text-[0.62rem] tracking-[0.34em] text-brass/70 uppercase">
           <span>Private Archive</span>
-          <span>Est. 1928</span>
+          <nav className="flex gap-5">
+            <Link href="/cases" className="hover:text-brass">
+              Cases
+            </Link>
+            <Link href="/profile" className="hover:text-brass">
+              Profile
+            </Link>
+          </nav>
         </header>
 
         <section className="mx-auto mt-10 max-w-3xl text-center md:mt-14">
