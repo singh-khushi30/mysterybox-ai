@@ -9,6 +9,7 @@ export type CaseSuspect = {
 
 export type CaseFile = {
   id: string;
+  backendId?: string;
   number: string;
   title: string;
   locked: boolean;

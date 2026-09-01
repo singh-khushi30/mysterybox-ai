@@ -9,6 +9,7 @@ import { InvestigationNav } from "@/components/investigation/InvestigationNav";
 import { InvestigationTopbar } from "@/components/investigation/InvestigationTopbar";
 import { DustMotes } from "@/components/shared/DustMotes";
 import { getInvestigationStats } from "@/lib/investigation";
+import { InvestigationSessionProvider } from "@/lib/investigation/session-context";
 import type { Case } from "@/types/investigation";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { cn } from "@/lib/utils";
@@ -34,7 +35,8 @@ export function InvestigationShell({
     pathname.includes("/result");
 
   return (
-    <div className="desk-blotter relative min-h-dvh">
+    <InvestigationSessionProvider routeId={caseFile.id} caseId={caseFile.backendId}>
+      <div className="desk-blotter relative min-h-dvh">
       <DustMotes />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgb(196_160_106/7%),transparent_46%)]" />
       <div
@@ -81,5 +83,6 @@ export function InvestigationShell({
         </div>
       </div>
     </div>
+    </InvestigationSessionProvider>
   );
 }

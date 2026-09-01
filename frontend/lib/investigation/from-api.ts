@@ -113,6 +113,7 @@ export function toCaseFile(
   const victim = victimFromDescription(item.description);
   return {
     id: publicCaseId(item, routeId),
+    backendId: item.id,
     number: caseLabel(item, index),
     title: item.title,
     locked: false,
@@ -200,6 +201,7 @@ export function toInvestigation(
 
   return {
     id: publicCaseId(item, routeId),
+    backendId: item.id,
     number: caseLabel(item, index),
     title: item.title,
     difficulty: difficultyLabel(item.difficulty),

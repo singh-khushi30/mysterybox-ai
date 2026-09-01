@@ -2,6 +2,7 @@ import type {
   ApiCase,
   ApiEvidence,
   ApiFailure,
+  ApiSession,
   ApiSuccess,
   ApiSuspect,
   ApiTimelineEvent,
@@ -25,11 +26,16 @@ function apiBase() {
   return base;
 }
 
-async function request<T>(path: string): Promise<T> {
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
   try {
     response = await fetch(`${apiBase()}${path}`, {
       cache: "no-store",
+      ...init,
+      headers: {
+        ...(init?.body ? { "Content-Type": "application/json" } : {}),
+        ...init?.headers,
+      },
     });
   } catch {
     throw new ApiError("The bureau could not be reached.", 503);
@@ -76,6 +82,23 @@ export function getEvidence(id: string) {
 
 export function getCaseTimeline(caseId: string) {
   return request<ApiTimelineEvent[]>(`/api/cases/${caseId}/timeline`);
+}
+
+export function createSession(caseId: string) {
+  return request<ApiSession>("/api/sessions", {
+    method: "POST",
+    body: JSON.stringify({ caseId }),
+  });
+}
+
+export function getSession(id: string) {
+  return request<ApiSession>(`/api/sessions/${id}`);
+}
+
+export function completeSession(id: string) {
+  return request<ApiSession>(`/api/sessions/${id}/complete`, {
+    method: "PATCH",
+  });
 }
 
 const uuidPattern =

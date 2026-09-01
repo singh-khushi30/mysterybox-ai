@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { CaseOpeningExperience } from "@/components/three/CaseOpeningExperience";
 import { WaxSealButton } from "@/components/shared/WaxSealButton";
+import { ApiError } from "@/lib/api";
+import { startInvestigationSession } from "@/lib/investigation/session";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { useViewportMode } from "@/hooks/useViewportMode";
 import type { CaseFile } from "@/types/case";
@@ -16,6 +18,26 @@ export function CaseDossier({ caseFile }: { caseFile: CaseFile }) {
   const reducedMotion = usePrefersReducedMotion();
   const [opening, setOpening] = useState(reducedMotion);
   const [showDossier, setShowDossier] = useState(reducedMotion);
+  const [starting, setStarting] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
+
+  async function beginInvestigation() {
+    if (starting || !caseFile.backendId) return;
+    setStarting(true);
+    setStartError(null);
+    try {
+      await startInvestigationSession(caseFile.id, caseFile.backendId);
+      router.push(`/cases/${caseFile.id}/investigate`);
+    } catch (error) {
+      setStartError(
+        error instanceof ApiError
+          ? error.message
+          : "The bureau could not open a session."
+      );
+    } finally {
+      setStarting(false);
+    }
+  }
 
   useEffect(() => {
     const openTimer = window.setTimeout(
@@ -148,11 +170,12 @@ export function CaseDossier({ caseFile }: { caseFile: CaseFile }) {
                 </section>
 
                 <div>
-                  <WaxSealButton
-                    onClick={() => router.push(`/cases/${caseFile.id}/investigate`)}
-                  >
-                    Begin Investigation
+                  <WaxSealButton disabled={starting} onClick={() => void beginInvestigation()}>
+                    {starting ? "Opening the desk…" : "Begin Investigation"}
                   </WaxSealButton>
+                  {startError && (
+                    <p className="mt-3 font-display text-sm text-beige/55 italic">{startError}</p>
+                  )}
                 </div>
               </div>
             </motion.section>

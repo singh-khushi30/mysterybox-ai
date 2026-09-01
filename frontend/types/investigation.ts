@@ -54,6 +54,7 @@ export type TimelineEvent = {
 
 export type Case = {
   id: string;
+  backendId: string;
   number: string;
   title: string;
   difficulty: CaseDifficulty;

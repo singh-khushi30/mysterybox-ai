@@ -48,6 +48,17 @@ export type ApiTimelineEvent = {
   created_at: string;
 };
 
+export type ApiSessionStatus = "in_progress" | "completed" | "abandoned";
+
+export type ApiSession = {
+  id: string;
+  case_id: string;
+  status: ApiSessionStatus;
+  started_at: string;
+  completed_at: string | null;
+  score: number | null;
+};
+
 export type ApiSuccess<T> = {
   success: true;
   data: T;
