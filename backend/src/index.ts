@@ -4,6 +4,9 @@ import express from "express";
 import helmet from "helmet";
 import morgan from "morgan";
 import { supabase } from "./config/supabase.js";
+import { errorHandler } from "./middleware/error.js";
+import { apiRouter } from "./routes/index.js";
+import { fail } from "./utils/http.js";
 
 dotenv.config();
 
@@ -51,12 +54,16 @@ app.get("/api/db-status", async (_req, res) => {
   }
 });
 
+app.use("/api", apiRouter);
+
+app.use("/api", (_req, res) => {
+  res.status(404).json(fail("Not found"));
+});
+
+app.use(errorHandler);
+
 function isSupabaseReachable(code: string | undefined, message: string): boolean {
-  if (
-    code === "PGRST205" ||
-    code === "PGRST116" ||
-    code === "42P01"
-  ) {
+  if (code === "PGRST205" || code === "PGRST116" || code === "42P01") {
     return true;
   }
 
