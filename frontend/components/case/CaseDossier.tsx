@@ -111,6 +111,11 @@ export function CaseDossier({ caseFile }: { caseFile: CaseFile }) {
                     Persons of interest
                   </h2>
                   <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">
+                    {(!caseFile.suspects || caseFile.suspects.length === 0) && (
+                      <p className="col-span-full text-sm text-beige/50 italic">
+                        No persons of interest have been named.
+                      </p>
+                    )}
                     {caseFile.suspects?.map((suspect) => (
                       <div key={suspect.id} className="text-center">
                         <Portrait initials={suspect.initials} dark />
@@ -128,6 +133,9 @@ export function CaseDossier({ caseFile }: { caseFile: CaseFile }) {
                     Evidence labels
                   </h2>
                   <div className="mt-4 flex flex-wrap gap-3">
+                    {(!caseFile.evidence || caseFile.evidence.length === 0) && (
+                      <p className="text-sm text-beige/50 italic">No evidence labels have been released.</p>
+                    )}
                     {caseFile.evidence?.map((item) => (
                       <span
                         key={item}

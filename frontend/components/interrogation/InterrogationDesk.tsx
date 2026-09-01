@@ -10,6 +10,7 @@ import {
   mockConfront,
   mockContradictions,
   openingTranscript,
+  suspectScriptKey,
 } from "@/lib/investigation/interrogation";
 import { suspicionLabel } from "@/lib/investigation";
 import type { Case, Suspect } from "@/types/investigation";
@@ -39,7 +40,8 @@ export function InterrogationDesk({
     (item) => suspect.connectedEvidenceIds.includes(item.id) && item.discovered
   );
   const timeline = caseFile.timeline.filter((event) => event.suspectId === suspect.id);
-  const contradictions = mockContradictions[suspect.id] ?? [];
+  const scriptKey = suspectScriptKey(suspect.name);
+  const contradictions = mockContradictions[scriptKey] ?? [];
   const selectedEvidence = connected.find((item) => item.id === selectedEvidenceId);
 
   function appendLine(speaker: TranscriptLine["speaker"], text: string) {
@@ -64,7 +66,7 @@ export function InterrogationDesk({
     appendLine("detective", question);
     setWaiting(true);
     window.setTimeout(() => {
-      appendLine("suspect", mockAnswer(suspect.id, question));
+      appendLine("suspect", mockAnswer(scriptKey, question));
       setWaiting(false);
     }, 700);
   }
@@ -243,7 +245,7 @@ export function InterrogationDesk({
               if (!confrontQuestion.trim()) return;
               setConfrontSending(true);
               window.setTimeout(() => {
-                const reply = mockConfront(suspect.id, selectedEvidence.title);
+                const reply = mockConfront(scriptKey, selectedEvidence.title);
                 setConfrontReply(reply);
                 setConfrontSending(false);
                 appendLine("detective", `Confronting with ${selectedEvidence.fileNumber}. ${confrontQuestion}`);

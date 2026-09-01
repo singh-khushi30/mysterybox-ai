@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { InterrogationDesk } from "@/components/interrogation/InterrogationDesk";
-import { getInvestigation, getSuspect } from "@/lib/investigation";
+import { DeskNotice } from "@/components/shared/DeskNotice";
+import { loadSuspectForCase } from "@/lib/investigation/load";
 
 export default async function InterrogatePage({
   params,
@@ -8,8 +9,10 @@ export default async function InterrogatePage({
   params: Promise<{ id: string; suspectId: string }>;
 }) {
   const { id, suspectId } = await params;
-  const caseFile = getInvestigation(id);
-  const suspect = getSuspect(id, suspectId);
-  if (!caseFile || !suspect) notFound();
-  return <InterrogationDesk caseFile={caseFile} suspect={suspect} />;
+  const result = await loadSuspectForCase(id, suspectId);
+  if (result.status === "not_found") notFound();
+  if (result.status === "error") {
+    return <DeskNotice title="The bureau is silent" detail={result.message} />;
+  }
+  return <InterrogationDesk caseFile={result.data.caseFile} suspect={result.data.suspect} />;
 }

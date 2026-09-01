@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SuspectProfile } from "@/components/suspects/SuspectProfile";
-import { getInvestigation, getSuspect } from "@/lib/investigation";
+import { DeskNotice } from "@/components/shared/DeskNotice";
+import { loadSuspectForCase } from "@/lib/investigation/load";
 
 export default async function SuspectDetailPage({
   params,
@@ -9,9 +10,11 @@ export default async function SuspectDetailPage({
   params: Promise<{ id: string; suspectId: string }>;
 }) {
   const { id, suspectId } = await params;
-  const caseFile = getInvestigation(id);
-  const suspect = getSuspect(id, suspectId);
-  if (!caseFile || !suspect) notFound();
+  const result = await loadSuspectForCase(id, suspectId);
+  if (result.status === "not_found") notFound();
+  if (result.status === "error") {
+    return <DeskNotice title="The bureau is silent" detail={result.message} />;
+  }
 
   return (
     <div>
@@ -21,7 +24,7 @@ export default async function SuspectDetailPage({
       >
         All suspects
       </Link>
-      <SuspectProfile caseFile={caseFile} suspect={suspect} />
+      <SuspectProfile caseFile={result.data.caseFile} suspect={result.data.suspect} />
     </div>
   );
 }

@@ -34,6 +34,11 @@ export function EvidenceGrid({ caseFile }: { caseFile: Case }) {
   return (
     <>
       <div className="space-y-8">
+        {grouped.length === 0 && (
+          <p className="font-display text-lg text-beige/50 italic">
+            The evidence drawer has not been opened.
+          </p>
+        )}
         {grouped.map((group) => (
           <section key={group.kind}>
             <h2 className="font-mono text-[0.62rem] tracking-[0.28em] text-brass uppercase">

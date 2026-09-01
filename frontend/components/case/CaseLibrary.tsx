@@ -1,14 +1,24 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { motion } from "framer-motion";
 import { ArchiveFolder } from "@/components/case/ArchiveFolder";
 import { ArchiveHeader } from "@/components/layout/ArchiveHeader";
-import { cases } from "@/lib/cases";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import type { CaseFile } from "@/types/case";
 
-export function CaseLibrary() {
+export function CaseLibrary({
+  playable,
+  locked,
+  notice,
+}: {
+  playable: CaseFile[];
+  locked: CaseFile[];
+  notice?: ReactNode;
+}) {
   const reducedMotion = usePrefersReducedMotion();
-  const [openCase, ...lockedCases] = cases;
+  const [openCase, ...otherPlayable] = playable;
+  const sideCases = [...otherPlayable, ...locked];
 
   return (
     <main className="desk-blotter relative min-h-dvh px-6 py-8 md:px-12 md:py-12">
@@ -20,17 +30,27 @@ export function CaseLibrary() {
           someone expected you.
         </p>
 
+        {notice}
+
+        {!openCase && !notice && (
+          <p className="mt-10 font-display text-2xl text-beige/55 italic">
+            The drawer is empty. No playable files have been released.
+          </p>
+        )}
+
         <div className="mt-10 grid items-end gap-8 lg:grid-cols-[1.15fr_0.85fr]">
-          <motion.div
-            initial={reducedMotion ? false : { opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-            className="-rotate-2"
-          >
-            {openCase && <ArchiveFolder caseFile={openCase} featured />}
-          </motion.div>
+          {openCase && (
+            <motion.div
+              initial={reducedMotion ? false : { opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7 }}
+              className="-rotate-2"
+            >
+              <ArchiveFolder caseFile={openCase} featured />
+            </motion.div>
+          )}
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-1">
-            {lockedCases.map((caseFile, index) => (
+            {sideCases.map((caseFile, index) => (
               <motion.div
                 key={caseFile.id}
                 initial={reducedMotion ? false : { opacity: 0, y: 20 }}

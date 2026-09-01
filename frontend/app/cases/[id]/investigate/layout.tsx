@@ -1,17 +1,26 @@
 import { notFound } from "next/navigation";
 import { InvestigationShell } from "@/components/investigation/InvestigationShell";
-import { getInvestigation } from "@/lib/investigation";
+import { DeskNotice } from "@/components/shared/DeskNotice";
+import { loadInvestigation } from "@/lib/investigation/load";
 
 export default async function InvestigateLayout({
   children,
   params,
 }: LayoutProps<"/cases/[id]/investigate">) {
   const { id } = await params;
-  const caseFile = getInvestigation(id);
+  const result = await loadInvestigation(id);
 
-  if (!caseFile) {
+  if (result.status === "not_found") {
     notFound();
   }
 
-  return <InvestigationShell caseFile={caseFile}>{children}</InvestigationShell>;
+  if (result.status === "error") {
+    return (
+      <main className="desk-blotter min-h-dvh px-6">
+        <DeskNotice title="The bureau is silent" detail={result.message} />
+      </main>
+    );
+  }
+
+  return <InvestigationShell caseFile={result.data}>{children}</InvestigationShell>;
 }

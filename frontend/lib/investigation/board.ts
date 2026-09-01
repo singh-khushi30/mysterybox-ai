@@ -85,21 +85,18 @@ export function buildBoardGraph(caseFile: Case, pinnedIds: string[]): {
     },
   }));
 
-  const edges: BoardEdge[] = [
-    thread("e-clara-receipt", "suspect-clara", "evidence-receipt", "Motive"),
-    thread("e-clara-east", "suspect-clara", "loc-east", "Alibi"),
-    thread("e-silas-watch", "suspect-silas", "evidence-watch", "Related"),
-    thread("e-silas-dining", "suspect-silas", "loc-dining", "Related"),
-    thread("e-jonah-cctv", "suspect-jonah", "evidence-cctv", "Seen With"),
-    thread("e-cctv-west", "evidence-cctv", "loc-west", "Evidence"),
-    thread("e-isolde-letter", "suspect-isolde", "evidence-letter", "Motive"),
-    thread("e-isolde-gallery", "suspect-isolde", "loc-gallery", "Alibi"),
-    thread("e-coupe-cons", "evidence-coupe", "loc-conservatory", "Evidence"),
-    thread("e-watch-study", "evidence-watch", "loc-study", "Related"),
-    thread("e-phone-isolde", "evidence-phone", "suspect-isolde", "Related"),
-    thread("e-photo-dining", "evidence-photograph", "loc-dining", "Related"),
-    thread("e-glove-west", "evidence-glove", "loc-west", "Contradicts"),
-  ];
+  const edges: BoardEdge[] = caseFile.suspects.flatMap((suspect) =>
+    suspect.connectedEvidenceIds
+      .filter((evidenceId) => discovered.some((item) => item.id === evidenceId))
+      .map((evidenceId) =>
+        thread(
+          `e-${suspect.id}-${evidenceId}`,
+          `suspect-${suspect.id}`,
+          `evidence-${evidenceId}`,
+          "Related"
+        )
+      )
+  );
 
   return { nodes: [...suspects, ...locations, ...evidence], edges };
 }

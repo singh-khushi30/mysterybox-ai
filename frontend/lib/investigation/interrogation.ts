@@ -21,6 +21,10 @@ export function openingTranscript(suspectName: string, initials: string): Transc
   ];
 }
 
+export function suspectScriptKey(name: string) {
+  return name.replace(/^Dr\.\s+/, "").split(/\s+/)[0]?.toLowerCase() ?? "";
+}
+
 export function mockAnswer(suspectId: string, question: string): string {
   const q = question.toLowerCase();
 

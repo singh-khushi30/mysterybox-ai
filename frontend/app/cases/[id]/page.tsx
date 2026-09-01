@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { CaseDossier } from "@/components/case/CaseDossier";
-import { getCaseById } from "@/lib/cases";
+import { DeskNotice } from "@/components/shared/DeskNotice";
+import { getComingSoonCase } from "@/lib/cases";
+import { loadCaseFile } from "@/lib/investigation/load";
 
 export default async function CasePage({
   params,
@@ -8,11 +10,20 @@ export default async function CasePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const caseFile = getCaseById(id);
-
-  if (!caseFile) {
-    notFound();
+  const sealed = getComingSoonCase(id);
+  if (sealed) {
+    return <CaseDossier caseFile={sealed} />;
   }
 
-  return <CaseDossier caseFile={caseFile} />;
+  const result = await loadCaseFile(id);
+  if (result.status === "not_found") notFound();
+  if (result.status === "error") {
+    return (
+      <main className="desk-blotter min-h-dvh px-6">
+        <DeskNotice title="The bureau is silent" detail={result.message} />
+      </main>
+    );
+  }
+
+  return <CaseDossier caseFile={result.data} />;
 }

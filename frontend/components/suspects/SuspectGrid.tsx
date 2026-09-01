@@ -8,6 +8,14 @@ import type { Case, Suspect } from "@/types/investigation";
 import { cn } from "@/lib/utils";
 
 export function SuspectGrid({ caseFile }: { caseFile: Case }) {
+  if (caseFile.suspects.length === 0) {
+    return (
+      <p className="font-display text-lg text-beige/50 italic">
+        No persons of interest have been named.
+      </p>
+    );
+  }
+
   return (
     <div className="grid gap-5 md:grid-cols-2">
       {caseFile.suspects.map((suspect, index) => (

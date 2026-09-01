@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { EvidenceBoardLoader } from "@/components/board/EvidenceBoardLoader";
-import { getInvestigation } from "@/lib/investigation";
+import { DeskNotice } from "@/components/shared/DeskNotice";
+import { loadInvestigation } from "@/lib/investigation/load";
 
 export default async function BoardPage({
   params,
@@ -8,7 +9,10 @@ export default async function BoardPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const caseFile = getInvestigation(id);
-  if (!caseFile) notFound();
-  return <EvidenceBoardLoader caseFile={caseFile} />;
+  const result = await loadInvestigation(id);
+  if (result.status === "not_found") notFound();
+  if (result.status === "error") {
+    return <DeskNotice title="The bureau is silent" detail={result.message} />;
+  }
+  return <EvidenceBoardLoader caseFile={result.data} />;
 }
