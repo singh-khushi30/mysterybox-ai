@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import express from "express";
 import helmet from "helmet";
 import morgan from "morgan";
+import { supabase } from "./config/supabase.js";
 
 dotenv.config();
 
@@ -20,6 +21,47 @@ app.get("/api/health", (_req, res) => {
     message: "MysteryBox API is running",
   });
 });
+
+app.get("/api/db-status", async (_req, res) => {
+  try {
+    const { error } = await supabase
+      .from("_connection_check")
+      .select("*")
+      .limit(1);
+
+    if (error && !isSupabaseReachable(error.code, error.message)) {
+      console.error("Supabase connection check failed.");
+      res.status(503).json({
+        success: false,
+        database: "disconnected",
+      });
+      return;
+    }
+
+    res.json({
+      success: true,
+      database: "connected",
+    });
+  } catch {
+    console.error("Supabase connection check failed.");
+    res.status(503).json({
+      success: false,
+      database: "disconnected",
+    });
+  }
+});
+
+function isSupabaseReachable(code: string | undefined, message: string): boolean {
+  if (
+    code === "PGRST205" ||
+    code === "PGRST116" ||
+    code === "42P01"
+  ) {
+    return true;
+  }
+
+  return /could not find the table|does not exist|schema cache/i.test(message);
+}
 
 const server = app.listen(port, () => {
   console.log(`MysteryBox API listening on http://localhost:${port}`);
