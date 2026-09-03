@@ -13,6 +13,7 @@ import {
   suspectScriptKey,
 } from "@/lib/investigation/interrogation";
 import { suspicionLabel } from "@/lib/investigation";
+import { useProgressCase } from "@/lib/investigation/progress-context";
 import type { Case, Suspect } from "@/types/investigation";
 import type { TranscriptLine } from "@/types/board";
 import { cn } from "@/lib/utils";
@@ -36,7 +37,8 @@ export function InterrogationDesk({
   const [confrontSending, setConfrontSending] = useState(false);
   const logRef = useRef<HTMLDivElement>(null);
 
-  const connected = caseFile.evidence.filter(
+  const liveCase = useProgressCase(caseFile);
+  const connected = liveCase.evidence.filter(
     (item) => suspect.connectedEvidenceIds.includes(item.id) && item.discovered
   );
   const timeline = caseFile.timeline.filter((event) => event.suspectId === suspect.id);

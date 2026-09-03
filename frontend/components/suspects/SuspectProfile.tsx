@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import { Portrait } from "@/components/shared/Portrait";
 import { suspicionLabel } from "@/lib/investigation";
+import { useProgressCase } from "@/lib/investigation/progress-context";
 import type { Case, Suspect } from "@/types/investigation";
 
 export function SuspectProfile({
@@ -10,7 +13,8 @@ export function SuspectProfile({
   caseFile: Case;
   suspect: Suspect;
 }) {
-  const connected = caseFile.evidence.filter(
+  const liveCase = useProgressCase(caseFile);
+  const connected = liveCase.evidence.filter(
     (item) => suspect.connectedEvidenceIds.includes(item.id) && item.discovered
   );
   const sealed = suspect.connectedEvidenceIds.length - connected.length;

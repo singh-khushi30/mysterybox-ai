@@ -3,6 +3,7 @@ import {
   ApiError,
   getCase,
   getCaseEvidence,
+  getCasePublicEvidence,
   getCaseSuspects,
   getCases,
   getCaseTimeline,
@@ -84,7 +85,7 @@ export const loadInvestigation = cache(async (idOrSlug: string): Promise<LoadRes
     const [item, suspects, evidence, timeline, catalog] = await Promise.all([
       getCase(caseId),
       getCaseSuspects(caseId),
-      getCaseEvidence(caseId),
+      getCasePublicEvidence(caseId),
       getCaseTimeline(caseId),
       getCases(),
     ]);

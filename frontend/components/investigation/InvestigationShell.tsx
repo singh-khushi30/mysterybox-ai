@@ -9,12 +9,29 @@ import { InvestigationNav } from "@/components/investigation/InvestigationNav";
 import { InvestigationTopbar } from "@/components/investigation/InvestigationTopbar";
 import { DustMotes } from "@/components/shared/DustMotes";
 import { getInvestigationStats } from "@/lib/investigation";
+import { InvestigationProgressProvider, useProgressCase } from "@/lib/investigation/progress-context";
 import { InvestigationSessionProvider } from "@/lib/investigation/session-context";
 import type { Case } from "@/types/investigation";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { cn } from "@/lib/utils";
 
 export function InvestigationShell({
+  caseFile,
+  children,
+}: {
+  caseFile: Case;
+  children: ReactNode;
+}) {
+  return (
+    <InvestigationSessionProvider routeId={caseFile.id} caseId={caseFile.backendId}>
+      <InvestigationProgressProvider>
+        <InvestigationDesk caseFile={caseFile}>{children}</InvestigationDesk>
+      </InvestigationProgressProvider>
+    </InvestigationSessionProvider>
+  );
+}
+
+function InvestigationDesk({
   caseFile,
   children,
 }: {
@@ -28,15 +45,15 @@ export function InvestigationShell({
     () => true,
     () => false
   );
-  const stats = getInvestigationStats(caseFile);
+  const liveCase = useProgressCase(caseFile);
+  const stats = getInvestigationStats(liveCase);
   const fullCanvas =
     pathname.includes("/board") ||
     pathname.includes("/interrogate") ||
     pathname.includes("/result");
 
   return (
-    <InvestigationSessionProvider routeId={caseFile.id} caseId={caseFile.backendId}>
-      <div className="desk-blotter relative min-h-dvh">
+    <div className="desk-blotter relative min-h-dvh">
       <DustMotes />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgb(196_160_106/7%),transparent_46%)]" />
       <div
@@ -47,7 +64,7 @@ export function InvestigationShell({
       >
         <aside className="lg:w-56 lg:shrink-0 lg:py-4">
           <Link
-            href={`/cases/${caseFile.id}`}
+            href={`/cases/${liveCase.id}`}
             className="mb-6 inline-block font-mono text-[0.62rem] tracking-[0.3em] text-brass/80 uppercase hover:text-brass"
           >
             MysteryBox · File
@@ -55,7 +72,7 @@ export function InvestigationShell({
           <p className="mb-4 hidden font-display text-sm text-beige/40 italic lg:block">
             The desk is yours. Do not rush the paper.
           </p>
-          <InvestigationNav caseId={caseFile.id} />
+          <InvestigationNav caseId={liveCase.id} />
         </aside>
         <div className="flex min-h-0 min-w-0 flex-1 flex-col pb-10">
           <a
@@ -65,8 +82,8 @@ export function InvestigationShell({
             Skip to desk
           </a>
           <InvestigationTopbar
-            number={caseFile.number}
-            title={caseFile.title}
+            number={liveCase.number}
+            title={liveCase.title}
             progress={stats.progress}
           />
           <motion.div
@@ -78,11 +95,10 @@ export function InvestigationShell({
             className={cn("mt-8 flex-1", fullCanvas && "flex min-h-0 flex-col")}
           >
             {children}
-            <DeskPager caseFile={caseFile} />
+            <DeskPager caseFile={liveCase} />
           </motion.div>
         </div>
       </div>
     </div>
-    </InvestigationSessionProvider>
   );
 }

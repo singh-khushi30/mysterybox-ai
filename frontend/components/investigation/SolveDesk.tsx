@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import { WaxSealButton } from "@/components/shared/WaxSealButton";
 import { Portrait } from "@/components/shared/Portrait";
 import { MOTIVES, WEAPONS, saveAccusation } from "@/lib/investigation/solve";
+import { useProgressCase } from "@/lib/investigation/progress-context";
 import type { Case } from "@/types/investigation";
 import { cn } from "@/lib/utils";
 
 export function SolveDesk({ caseFile }: { caseFile: Case }) {
+  const liveCase = useProgressCase(caseFile);
   const router = useRouter();
-  const discovered = caseFile.evidence.filter((item) => item.discovered);
+  const discovered = liveCase.evidence.filter((item) => item.discovered);
   const [suspectId, setSuspectId] = useState<string | null>(null);
   const [motive, setMotive] = useState<string | null>(null);
   const [weapon, setWeapon] = useState<string | null>(null);

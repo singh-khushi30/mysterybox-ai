@@ -5,32 +5,34 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Portrait } from "@/components/shared/Portrait";
 import { getInvestigationStats } from "@/lib/investigation";
+import { useProgressCase } from "@/lib/investigation/progress-context";
 import type { Case } from "@/types/investigation";
 
 export function OverviewDesk({ caseFile }: { caseFile: Case }) {
-  const stats = getInvestigationStats(caseFile);
-  const discovered = caseFile.evidence.filter((item) => item.discovered).slice(0, 4);
+  const liveCase = useProgressCase(caseFile);
+  const stats = getInvestigationStats(liveCase);
+  const discovered = liveCase.evidence.filter((item) => item.discovered).slice(0, 4);
 
   return (
     <div className="space-y-8">
       <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <article className="paper-texture rounded-sm p-6 text-[#2d2118] shadow-[0_18px_50px_rgb(0_0_0/35%)] md:p-8">
           <p className="font-mono text-[0.62rem] tracking-[0.28em] uppercase">
-            File {caseFile.number} · {caseFile.date}
+            File {liveCase.number} · {liveCase.date}
           </p>
-          <h2 className="mt-3 font-display text-4xl leading-tight">{caseFile.title}</h2>
+          <h2 className="mt-3 font-display text-4xl leading-tight">{liveCase.title}</h2>
           <div className="mt-6 flex items-start gap-4">
-            <Portrait initials={caseFile.victim.initials} paper className="size-16 text-2xl" />
+            <Portrait initials={liveCase.victim.initials} paper className="size-16 text-2xl" />
             <div>
-              <p className="font-display text-xl">{caseFile.victim.name}</p>
-              <p className="text-sm text-[#5c4636]">{caseFile.victim.role}</p>
-              <p className="mt-3 leading-7">{caseFile.victim.summary}</p>
+              <p className="font-display text-xl">{liveCase.victim.name}</p>
+              <p className="text-sm text-[#5c4636]">{liveCase.victim.role}</p>
+              <p className="mt-3 leading-7">{liveCase.victim.summary}</p>
             </div>
           </div>
         </article>
 
         <div className="grid grid-cols-2 gap-3">
-          <Stat label="Difficulty" value={caseFile.difficulty} />
+          <Stat label="Difficulty" value={liveCase.difficulty} />
           <Stat label="Progress" value={`${stats.progress}%`} />
           <Stat
             label="Evidence"
@@ -60,10 +62,10 @@ export function OverviewDesk({ caseFile }: { caseFile: Case }) {
         <div>
           <SectionLabel>Persons of interest</SectionLabel>
           <div className="mt-3 grid grid-cols-4 gap-3">
-            {caseFile.suspects.map((suspect) => (
+            {liveCase.suspects.map((suspect) => (
               <Link
                 key={suspect.id}
-                href={`/cases/${caseFile.id}/investigate/suspects/${suspect.id}`}
+                href={`/cases/${liveCase.id}/investigate/suspects/${suspect.id}`}
                 className="text-center transition-transform duration-300 hover:-translate-y-1"
               >
                 <Portrait initials={suspect.initials} className="mx-auto aspect-[3/4] w-full text-xl" />

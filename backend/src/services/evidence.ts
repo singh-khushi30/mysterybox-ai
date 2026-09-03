@@ -22,6 +22,40 @@ export async function listVisibleEvidenceForCase(caseId: string) {
   return data ?? [];
 }
 
+export async function listPublicEvidenceForCase(caseId: string) {
+  await getPlayableCase(caseId);
+
+  const { data, error } = await supabase
+    .from("evidence")
+    .select(EVIDENCE_FIELDS)
+    .eq("case_id", caseId)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    throw new HttpError(500, "Unable to load evidence");
+  }
+
+  return data ?? [];
+}
+
+export async function getPublicEvidence(id: string) {
+  const { data, error } = await supabase
+    .from("evidence")
+    .select(EVIDENCE_FIELDS)
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) {
+    throw new HttpError(500, "Unable to load evidence");
+  }
+  if (!data) {
+    throw new HttpError(404, "Evidence not found");
+  }
+
+  await getPlayableCase(data.case_id);
+  return data;
+}
+
 export async function getVisibleEvidence(id: string) {
   const { data, error } = await supabase
     .from("evidence")

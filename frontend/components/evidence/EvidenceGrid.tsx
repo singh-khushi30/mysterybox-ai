@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Lock } from "lucide-react";
 import { EvidenceModal } from "@/components/evidence/EvidenceModal";
 import { evidenceKindLabel } from "@/lib/investigation";
+import { useInvestigationProgress, useProgressCase } from "@/lib/investigation/progress-context";
 import type { Case, Evidence, EvidenceKind } from "@/types/investigation";
 import { cn } from "@/lib/utils";
 
@@ -18,18 +19,20 @@ const kindOrder: EvidenceKind[] = [
 ];
 
 export function EvidenceGrid({ caseFile }: { caseFile: Case }) {
+  const liveCase = useProgressCase(caseFile);
+  const { discover, discoveringId } = useInvestigationProgress();
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const boardIds = useBoardIds(caseFile.id);
-  const selected = caseFile.evidence.find((item) => item.id === selectedId);
+  const boardIds = useBoardIds(liveCase.id);
+  const selected = liveCase.evidence.find((item) => item.id === selectedId);
 
   const grouped = useMemo(() => {
     return kindOrder
       .map((kind) => ({
         kind,
-        items: caseFile.evidence.filter((item) => item.kind === kind),
+        items: liveCase.evidence.filter((item) => item.kind === kind),
       }))
       .filter((group) => group.items.length > 0);
-  }, [caseFile.evidence]);
+  }, [liveCase.evidence]);
 
   return (
     <>
@@ -50,8 +53,14 @@ export function EvidenceGrid({ caseFile }: { caseFile: Case }) {
                   key={item.id}
                   item={item}
                   delay={index * 0.04}
-                  onOpen={() => {
-                    if (item.discovered) setSelectedId(item.id);
+                  examining={discoveringId === item.id}
+                  onOpen={async () => {
+                    if (item.discovered) {
+                      setSelectedId(item.id);
+                      return;
+                    }
+                    const opened = await discover(item.id);
+                    if (opened) setSelectedId(item.id);
                   }}
                 />
               ))}
@@ -63,7 +72,7 @@ export function EvidenceGrid({ caseFile }: { caseFile: Case }) {
       <AnimatePresence>
         {selected && (
           <EvidenceModal
-            caseFile={caseFile}
+            caseFile={liveCase}
             evidence={selected}
             pinned={boardIds.ids.includes(selected.id)}
             onClose={() => setSelectedId(null)}
@@ -78,10 +87,12 @@ export function EvidenceGrid({ caseFile }: { caseFile: Case }) {
 function EvidenceCard({
   item,
   delay,
+  examining,
   onOpen,
 }: {
   item: Evidence;
   delay: number;
+  examining: boolean;
   onOpen: () => void;
 }) {
   return (
@@ -90,13 +101,13 @@ function EvidenceCard({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.35 }}
-      whileHover={item.discovered ? { y: -5 } : undefined}
+      whileHover={{ y: -5 }}
       onClick={onOpen}
       className={cn(
         "group relative overflow-hidden border p-0 text-left",
         item.discovered
           ? "border-brass/20 bg-[#161310]"
-          : "cursor-not-allowed border-white/8 bg-[#110e0c]"
+          : "border-white/8 bg-[#110e0c]"
       )}
     >
       <div className={cn("relative h-36", surfaceClass(item.kind, item.discovered))}>
@@ -108,7 +119,13 @@ function EvidenceCard({
         </span>
         {!item.discovered && (
           <div className="absolute inset-0 flex items-center justify-center bg-ink/55">
-            <Lock className="size-5 text-brass/70" />
+            {examining ? (
+              <span className="font-mono text-[0.58rem] tracking-[0.18em] text-brass uppercase">
+                Yielding…
+              </span>
+            ) : (
+              <Lock className="size-5 text-brass/70" />
+            )}
           </div>
         )}
       </div>

@@ -21,6 +21,7 @@ import "@xyflow/react/dist/style.css";
 import { EvidenceNode, LocationNode, SuspectNode } from "@/components/board/nodes";
 import { LabeledEdge } from "@/components/board/LabeledEdge";
 import { buildBoardGraph, type BoardEdge, type BoardNode } from "@/lib/investigation/board";
+import { useProgressCase } from "@/lib/investigation/progress-context";
 import type { Case } from "@/types/investigation";
 
 const nodeTypes = {
@@ -196,9 +197,10 @@ function EvidenceBoardCanvas({ caseFile }: { caseFile: Case }) {
 }
 
 export function EvidenceBoard({ caseFile }: { caseFile: Case }) {
+  const liveCase = useProgressCase(caseFile);
   return (
     <ReactFlowProvider>
-      <EvidenceBoardCanvas caseFile={caseFile} />
+      <EvidenceBoardCanvas caseFile={liveCase} />
     </ReactFlowProvider>
   );
 }

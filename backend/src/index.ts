@@ -18,6 +18,14 @@ app.use(cors());
 app.use(morgan("dev"));
 app.use(express.json());
 
+app.get("/", (_req, res) => {
+  res.json({
+    success: true,
+    message: "MysteryBox API is running",
+    health: "/api/health",
+  });
+});
+
 app.get("/api/health", (_req, res) => {
   res.json({
     success: true,

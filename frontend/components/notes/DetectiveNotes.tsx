@@ -1,26 +1,66 @@
 "use client";
 
-import { useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState } from "react";
+import { getSessionNotes, saveSessionNotes } from "@/lib/api";
+import { useInvestigationSession } from "@/lib/investigation/session-context";
 
-const starterNote = `12 November, after midnight.
-
-The conservatory doors were not forced from outside.
-Clara’s hour is unconfirmed.
-The watch and the hallway plate do not agree with anyone’s story — yet.
-`;
-
-export function DetectiveNotes({ caseId }: { caseId: string }) {
-  const storageKey = `mysterybox.notes.${caseId}`;
-  const persisted = useSyncExternalStore(
-    subscribeNotes,
-    () => window.localStorage.getItem(storageKey) ?? starterNote,
-    () => starterNote
-  );
-  const [draft, setDraft] = useState<string | null>(null);
-  const [status, setStatus] = useState("Filed");
+export function DetectiveNotes({ caseId: _caseId }: { caseId: string }) {
+  const { sessionId, ready: sessionReady } = useInvestigationSession();
+  const [value, setValue] = useState("");
+  const [status, setStatus] = useState("Opening…");
   const [savedAt, setSavedAt] = useState<Date | null>(null);
+  const [loaded, setLoaded] = useState(false);
   const timer = useRef<number>(0);
-  const value = draft ?? persisted;
+  const requestId = useRef(0);
+
+  useEffect(() => {
+    if (!sessionReady) return;
+    if (!sessionId) {
+      setStatus("No session");
+      setLoaded(true);
+      return;
+    }
+
+    let cancelled = false;
+    setStatus("Opening…");
+    getSessionNotes(sessionId)
+      .then((note) => {
+        if (cancelled) return;
+        setValue(note.content);
+        setSavedAt(note.updated_at ? new Date(note.updated_at) : null);
+        setStatus(note.updated_at ? "Filed" : "Blank");
+        setLoaded(true);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setStatus("Could not open");
+        setLoaded(true);
+      });
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer.current);
+    };
+  }, [sessionId, sessionReady]);
+
+  function queueSave(next: string) {
+    if (!sessionId) return;
+    setStatus("Saving…");
+    window.clearTimeout(timer.current);
+    const ticket = ++requestId.current;
+    timer.current = window.setTimeout(() => {
+      saveSessionNotes(sessionId, next)
+        .then((note) => {
+          if (ticket !== requestId.current) return;
+          setSavedAt(note.updated_at ? new Date(note.updated_at) : new Date());
+          setStatus("Filed");
+        })
+        .catch(() => {
+          if (ticket !== requestId.current) return;
+          setStatus("Could not file");
+        });
+    }, 700);
+  }
 
   return (
     <section>
@@ -42,33 +82,18 @@ export function DetectiveNotes({ caseId }: { caseId: string }) {
         </div>
         <textarea
           value={value}
+          disabled={!loaded || !sessionId}
           onChange={(event) => {
             const next = event.target.value;
-            setDraft(next);
-            setStatus("Saving…");
-            window.clearTimeout(timer.current);
-            timer.current = window.setTimeout(() => {
-              window.localStorage.setItem(storageKey, next);
-              window.dispatchEvent(new Event("mysterybox-notes"));
-              setSavedAt(new Date());
-              setStatus("Filed");
-            }, 700);
+            setValue(next);
+            queueSave(next);
           }}
-          className="paper-texture min-h-[420px] w-full resize-y rounded-sm p-6 font-serif text-lg leading-8 text-[#2d2118] shadow-[0_20px_50px_rgb(0_0_0/35%)] outline-none"
+          className="paper-texture min-h-[420px] w-full resize-y rounded-sm p-6 font-serif text-lg leading-8 text-[#2d2118] shadow-[0_20px_50px_rgb(0_0_0/35%)] outline-none disabled:opacity-70"
           aria-label="Detective notes"
         />
       </div>
     </section>
   );
-}
-
-function subscribeNotes(onChange: () => void) {
-  window.addEventListener("storage", onChange);
-  window.addEventListener("mysterybox-notes", onChange);
-  return () => {
-    window.removeEventListener("storage", onChange);
-    window.removeEventListener("mysterybox-notes", onChange);
-  };
 }
 
 function formatStamp(date: Date) {

@@ -2,6 +2,7 @@ import type {
   ApiCase,
   ApiEvidence,
   ApiFailure,
+  ApiNote,
   ApiSession,
   ApiSuccess,
   ApiSuspect,
@@ -76,6 +77,10 @@ export function getCaseEvidence(caseId: string) {
   return request<ApiEvidence[]>(`/api/cases/${caseId}/evidence`);
 }
 
+export function getCasePublicEvidence(caseId: string) {
+  return request<ApiEvidence[]>(`/api/cases/${caseId}/evidence/all`);
+}
+
 export function getEvidence(id: string) {
   return request<ApiEvidence>(`/api/evidence/${id}`);
 }
@@ -98,6 +103,27 @@ export function getSession(id: string) {
 export function completeSession(id: string) {
   return request<ApiSession>(`/api/sessions/${id}/complete`, {
     method: "PATCH",
+  });
+}
+
+export function getSessionNotes(sessionId: string) {
+  return request<ApiNote>(`/api/sessions/${sessionId}/notes`);
+}
+
+export function saveSessionNotes(sessionId: string, content: string) {
+  return request<ApiNote>(`/api/sessions/${sessionId}/notes`, {
+    method: "PUT",
+    body: JSON.stringify({ content }),
+  });
+}
+
+export function getSessionEvidence(sessionId: string) {
+  return request<ApiEvidence[]>(`/api/sessions/${sessionId}/evidence`);
+}
+
+export function discoverSessionEvidence(sessionId: string, evidenceId: string) {
+  return request<ApiEvidence>(`/api/sessions/${sessionId}/evidence/${evidenceId}/discover`, {
+    method: "POST",
   });
 }
 
