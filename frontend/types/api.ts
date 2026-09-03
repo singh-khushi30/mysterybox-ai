@@ -64,6 +64,22 @@ export type ApiSession = {
   score: number | null;
 };
 
+export type ApiInterrogationRole = "detective" | "suspect";
+
+export type ApiInterrogationMessage = {
+  id: string;
+  session_id: string;
+  suspect_id: string;
+  role: ApiInterrogationRole;
+  content: string;
+  created_at: string;
+};
+
+export type ApiInterrogationTurn = {
+  detective: ApiInterrogationMessage;
+  suspect: ApiInterrogationMessage;
+};
+
 export type ApiSuccess<T> = {
   success: true;
   data: T;

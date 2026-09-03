@@ -2,6 +2,8 @@ import type {
   ApiCase,
   ApiEvidence,
   ApiFailure,
+  ApiInterrogationMessage,
+  ApiInterrogationTurn,
   ApiNote,
   ApiSession,
   ApiSuccess,
@@ -124,6 +126,22 @@ export function getSessionEvidence(sessionId: string) {
 export function discoverSessionEvidence(sessionId: string, evidenceId: string) {
   return request<ApiEvidence>(`/api/sessions/${sessionId}/evidence/${evidenceId}/discover`, {
     method: "POST",
+  });
+}
+
+export function getInterrogation(sessionId: string, suspectId: string) {
+  return request<ApiInterrogationMessage[]>(
+    `/api/sessions/${sessionId}/interrogations/${suspectId}`
+  );
+}
+
+export function interrogateSuspect(
+  sessionId: string,
+  input: { suspectId: string; message: string; evidenceId?: string }
+) {
+  return request<ApiInterrogationTurn>(`/api/sessions/${sessionId}/interrogate`, {
+    method: "POST",
+    body: JSON.stringify(input),
   });
 }
 

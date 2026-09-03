@@ -1,19 +1,19 @@
 "use client";
 
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { Portrait } from "@/components/shared/Portrait";
 import { ConfrontModal } from "@/components/interrogation/ConfrontModal";
+import { ApiError, getInterrogation, interrogateSuspect } from "@/lib/api";
 import {
-  mockAnswer,
-  mockConfront,
   mockContradictions,
-  openingTranscript,
   suspectScriptKey,
+  toTranscriptLine,
 } from "@/lib/investigation/interrogation";
 import { suspicionLabel } from "@/lib/investigation";
 import { useProgressCase } from "@/lib/investigation/progress-context";
+import { useInvestigationSession } from "@/lib/investigation/session-context";
 import type { Case, Suspect } from "@/types/investigation";
 import type { TranscriptLine } from "@/types/board";
 import { cn } from "@/lib/utils";
@@ -25,11 +25,12 @@ export function InterrogationDesk({
   caseFile: Case;
   suspect: Suspect;
 }) {
-  const [lines, setLines] = useState<TranscriptLine[]>(() =>
-    openingTranscript(suspect.name, suspect.initials)
-  );
+  const { sessionId, session, ready: sessionReady } = useInvestigationSession();
+  const [lines, setLines] = useState<TranscriptLine[]>([]);
   const [draft, setDraft] = useState("");
   const [waiting, setWaiting] = useState(false);
+  const [opening, setOpening] = useState(true);
+  const [status, setStatus] = useState("Opening the file…");
   const [selectedEvidenceId, setSelectedEvidenceId] = useState<string | null>(null);
   const [confrontOpen, setConfrontOpen] = useState(false);
   const [confrontQuestion, setConfrontQuestion] = useState("");
@@ -45,32 +46,112 @@ export function InterrogationDesk({
   const scriptKey = suspectScriptKey(suspect.name);
   const contradictions = mockContradictions[scriptKey] ?? [];
   const selectedEvidence = connected.find((item) => item.id === selectedEvidenceId);
+  const sessionActive = session?.status === "in_progress";
+  const canAsk = Boolean(sessionId && sessionActive && !waiting && !opening);
 
-  function appendLine(speaker: TranscriptLine["speaker"], text: string) {
-    const stamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    const line: TranscriptLine = {
-      id: `${Date.now()}-${speaker}`,
-      speaker,
-      name: speaker === "detective" ? "Det. Vale" : suspect.name,
-      time: stamp,
-      text,
+  useEffect(() => {
+    if (!sessionReady) return;
+    if (!sessionId) {
+      setOpening(false);
+      setStatus("No session");
+      setLines([]);
+      return;
+    }
+
+    let cancelled = false;
+    setOpening(true);
+    setStatus("Opening the file…");
+    getInterrogation(sessionId, suspect.id)
+      .then((messages) => {
+        if (cancelled) return;
+        setLines(messages.map((message) => toTranscriptLine(message, suspect.name)));
+        setStatus(messages.length > 0 ? "On the record" : "The chair is empty");
+        setOpening(false);
+        window.requestAnimationFrame(() => {
+          logRef.current?.scrollTo({ top: logRef.current.scrollHeight });
+        });
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setLines([]);
+        setStatus("Could not open the file");
+        setOpening(false);
+      });
+
+    return () => {
+      cancelled = true;
     };
-    setLines((current) => [...current, line]);
+  }, [sessionId, sessionReady, suspect.id, suspect.name]);
+
+  function scrollLog() {
     window.requestAnimationFrame(() => {
       logRef.current?.scrollTo({ top: logRef.current.scrollHeight, behavior: "smooth" });
     });
   }
 
+  function appendLocal(speaker: TranscriptLine["speaker"], text: string) {
+    const line: TranscriptLine = {
+      id: `${Date.now()}-${speaker}`,
+      speaker,
+      name: speaker === "detective" ? "Det. Vale" : suspect.name,
+      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      text,
+    };
+    setLines((current) => [...current, line]);
+    scrollLog();
+    return line.id;
+  }
+
+  function replaceTurn(localDetectiveId: string, turn: { detective: Parameters<typeof toTranscriptLine>[0]; suspect: Parameters<typeof toTranscriptLine>[0] }) {
+    setLines((current) => {
+      const withoutLocal = current.filter((line) => line.id !== localDetectiveId);
+      return [
+        ...withoutLocal,
+        toTranscriptLine(turn.detective, suspect.name),
+        toTranscriptLine(turn.suspect, suspect.name),
+      ];
+    });
+    scrollLog();
+  }
+
+  async function ask(message: string, evidenceId?: string) {
+    if (!sessionId || !canAsk) return;
+    const question = message.trim();
+    if (!question) return;
+
+    const localId = appendLocal(
+      "detective",
+      evidenceId && selectedEvidence
+        ? `Confronting with ${selectedEvidence.fileNumber}. ${question}`
+        : question
+    );
+    setWaiting(true);
+    setStatus("Waiting on an answer…");
+
+    try {
+      const turn = await interrogateSuspect(sessionId, {
+        suspectId: suspect.id,
+        message: question,
+        evidenceId,
+      });
+      replaceTurn(localId, turn);
+      setStatus("On the record");
+      return turn.suspect.content;
+    } catch (error) {
+      const detail =
+        error instanceof ApiError ? error.message : "The bureau could not take that down.";
+      setStatus(detail);
+      return null;
+    } finally {
+      setWaiting(false);
+    }
+  }
+
   function sendQuestion() {
     const question = draft.trim();
-    if (!question || waiting) return;
+    if (!question || !canAsk) return;
     setDraft("");
-    appendLine("detective", question);
-    setWaiting(true);
-    window.setTimeout(() => {
-      appendLine("suspect", mockAnswer(scriptKey, question));
-      setWaiting(false);
-    }, 700);
+    void ask(question);
   }
 
   return (
@@ -106,7 +187,7 @@ export function InterrogationDesk({
             Interview transcript
           </p>
           <p className="font-mono text-[0.58rem] tracking-[0.16em] text-beige/40 uppercase">
-            Room 2 · not for the press
+            {status}
           </p>
         </header>
         <div
@@ -140,6 +221,14 @@ export function InterrogationDesk({
               </div>
             </motion.div>
           ))}
+          {opening && (
+            <p className="font-display text-beige/45 italic">Opening the file…</p>
+          )}
+          {!opening && lines.length === 0 && !waiting && (
+            <p className="font-display text-beige/45 italic">
+              The chair is empty. Put a question on the record.
+            </p>
+          )}
           {waiting && (
             <p className="font-display text-beige/45 italic">The room is quiet…</p>
           )}
@@ -166,11 +255,12 @@ export function InterrogationDesk({
             }}
             placeholder="Put the question on the record…"
             rows={2}
-            className="flex-1 resize-none border border-brass/20 bg-ink/50 p-3 font-serif text-paper outline-none focus-visible:ring-2 focus-visible:ring-brass/70"
+            disabled={!canAsk}
+            className="flex-1 resize-none border border-brass/20 bg-ink/50 p-3 font-serif text-paper outline-none focus-visible:ring-2 focus-visible:ring-brass/70 disabled:opacity-50"
           />
           <button
             type="submit"
-            disabled={!draft.trim() || waiting}
+            disabled={!draft.trim() || !canAsk}
             className="self-stretch border border-burgundy/50 bg-burgundy/80 px-4 font-mono text-[0.62rem] tracking-[0.18em] text-paper uppercase transition-colors hover:bg-burgundy disabled:opacity-40"
           >
             Send
@@ -200,7 +290,7 @@ export function InterrogationDesk({
           ))}
           <button
             type="button"
-            disabled={!selectedEvidence}
+            disabled={!selectedEvidence || !canAsk}
             onClick={() => {
               setConfrontReply(null);
               setConfrontQuestion(
@@ -244,15 +334,12 @@ export function InterrogationDesk({
             reply={confrontReply}
             onQuestionChange={setConfrontQuestion}
             onSend={() => {
-              if (!confrontQuestion.trim()) return;
+              if (!confrontQuestion.trim() || !canAsk) return;
               setConfrontSending(true);
-              window.setTimeout(() => {
-                const reply = mockConfront(scriptKey, selectedEvidence.title);
+              void ask(confrontQuestion, selectedEvidence.id).then((reply) => {
                 setConfrontReply(reply);
                 setConfrontSending(false);
-                appendLine("detective", `Confronting with ${selectedEvidence.fileNumber}. ${confrontQuestion}`);
-                appendLine("suspect", reply);
-              }, 800);
+              });
             }}
             onClose={() => setConfrontOpen(false)}
           />

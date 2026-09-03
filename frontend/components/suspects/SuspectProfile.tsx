@@ -1,9 +1,12 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Portrait } from "@/components/shared/Portrait";
+import { getInterrogation } from "@/lib/api";
 import { suspicionLabel } from "@/lib/investigation";
 import { useProgressCase } from "@/lib/investigation/progress-context";
+import { useInvestigationSession } from "@/lib/investigation/session-context";
 import type { Case, Suspect } from "@/types/investigation";
 
 export function SuspectProfile({
@@ -13,11 +16,28 @@ export function SuspectProfile({
   caseFile: Case;
   suspect: Suspect;
 }) {
+  const { sessionId, ready: sessionReady } = useInvestigationSession();
+  const [onFile, setOnFile] = useState(suspect.questioned);
   const liveCase = useProgressCase(caseFile);
   const connected = liveCase.evidence.filter(
     (item) => suspect.connectedEvidenceIds.includes(item.id) && item.discovered
   );
   const sealed = suspect.connectedEvidenceIds.length - connected.length;
+
+  useEffect(() => {
+    if (!sessionReady || !sessionId) return;
+    let cancelled = false;
+    getInterrogation(sessionId, suspect.id)
+      .then((messages) => {
+        if (!cancelled) setOnFile(messages.length > 0);
+      })
+      .catch(() => {
+        if (!cancelled) setOnFile(suspect.questioned);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId, sessionReady, suspect.id, suspect.questioned]);
 
   return (
     <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr]">
@@ -75,7 +95,7 @@ export function SuspectProfile({
             Interrogation history
           </h3>
           <p className="mt-3 font-display text-lg text-beige/55 italic">
-            {suspect.questioned
+            {onFile
               ? "A preliminary interview is on file. The chair is still available."
               : "No interrogation has been recorded. The chair is empty."}
           </p>
