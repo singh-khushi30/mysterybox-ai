@@ -75,9 +75,26 @@ export type ApiInterrogationMessage = {
   created_at: string;
 };
 
+export type ApiContradictionFlag = {
+  detected: boolean;
+  explanation: string;
+};
+
 export type ApiInterrogationTurn = {
   detective: ApiInterrogationMessage;
   suspect: ApiInterrogationMessage;
+  contradiction?: ApiContradictionFlag;
+};
+
+export type ApiContradiction = {
+  id: string;
+  session_id: string;
+  suspect_id: string;
+  statement: string;
+  evidence_id: string | null;
+  explanation: string;
+  confidence: number;
+  discovered_at: string;
 };
 
 export type ApiSuccess<T> = {

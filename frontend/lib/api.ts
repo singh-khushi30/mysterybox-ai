@@ -1,5 +1,6 @@
 import type {
   ApiCase,
+  ApiContradiction,
   ApiEvidence,
   ApiFailure,
   ApiInterrogationMessage,
@@ -143,6 +144,10 @@ export function interrogateSuspect(
     method: "POST",
     body: JSON.stringify(input),
   });
+}
+
+export function getSessionContradictions(sessionId: string) {
+  return request<ApiContradiction[]>(`/api/sessions/${sessionId}/contradictions`);
 }
 
 const uuidPattern =

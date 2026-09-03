@@ -17,14 +17,23 @@ export async function postInterrogate(req: Request, res: Response) {
     throw new HttpError(400, "Invalid interview request");
   }
 
-  const data = await interrogateSuspect({
+  const result = await interrogateSuspect({
     sessionId,
     suspectId: parsed.data.suspectId,
     message: parsed.data.message,
     evidenceId: parsed.data.evidenceId,
   });
 
-  res.status(201).json(ok(data));
+  res.status(201).json(
+    ok({
+      detective: result.detective,
+      suspect: result.suspect,
+      contradiction: {
+        detected: result.contradiction.detected,
+        explanation: result.contradiction.explanation,
+      },
+    })
+  );
 }
 
 export async function getInterrogation(req: Request, res: Response) {

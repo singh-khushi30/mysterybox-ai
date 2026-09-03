@@ -5,12 +5,9 @@ import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { Portrait } from "@/components/shared/Portrait";
 import { ConfrontModal } from "@/components/interrogation/ConfrontModal";
-import { ApiError, getInterrogation, interrogateSuspect } from "@/lib/api";
-import {
-  mockContradictions,
-  suspectScriptKey,
-  toTranscriptLine,
-} from "@/lib/investigation/interrogation";
+import { ApiError, getInterrogation, getSessionContradictions, interrogateSuspect } from "@/lib/api";
+import { toTranscriptLine } from "@/lib/investigation/interrogation";
+import type { ApiContradiction } from "@/types/api";
 import { suspicionLabel } from "@/lib/investigation";
 import { useProgressCase } from "@/lib/investigation/progress-context";
 import { useInvestigationSession } from "@/lib/investigation/session-context";
@@ -36,6 +33,8 @@ export function InterrogationDesk({
   const [confrontQuestion, setConfrontQuestion] = useState("");
   const [confrontReply, setConfrontReply] = useState<string | null>(null);
   const [confrontSending, setConfrontSending] = useState(false);
+  const [contradictions, setContradictions] = useState<ApiContradiction[]>([]);
+  const [freshContradiction, setFreshContradiction] = useState<string | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
 
   const liveCase = useProgressCase(caseFile);
@@ -43,9 +42,8 @@ export function InterrogationDesk({
     (item) => suspect.connectedEvidenceIds.includes(item.id) && item.discovered
   );
   const timeline = caseFile.timeline.filter((event) => event.suspectId === suspect.id);
-  const scriptKey = suspectScriptKey(suspect.name);
-  const contradictions = mockContradictions[scriptKey] ?? [];
   const selectedEvidence = connected.find((item) => item.id === selectedEvidenceId);
+  const suspectContradictions = contradictions.filter((item) => item.suspect_id === suspect.id);
   const sessionActive = session?.status === "in_progress";
   const canAsk = Boolean(sessionId && sessionActive && !waiting && !opening);
 
@@ -61,10 +59,11 @@ export function InterrogationDesk({
     let cancelled = false;
     setOpening(true);
     setStatus("Opening the file…");
-    getInterrogation(sessionId, suspect.id)
-      .then((messages) => {
+    Promise.all([getInterrogation(sessionId, suspect.id), getSessionContradictions(sessionId)])
+      .then(([messages, found]) => {
         if (cancelled) return;
         setLines(messages.map((message) => toTranscriptLine(message, suspect.name)));
+        setContradictions(found);
         setStatus(messages.length > 0 ? "On the record" : "The chair is empty");
         setOpening(false);
         window.requestAnimationFrame(() => {
@@ -136,6 +135,12 @@ export function InterrogationDesk({
       });
       replaceTurn(localId, turn);
       setStatus("On the record");
+      if (turn.contradiction?.detected) {
+        setFreshContradiction(turn.contradiction.explanation);
+        void getSessionContradictions(sessionId)
+          .then(setContradictions)
+          .catch(() => undefined);
+      }
       return turn.suspect.content;
     } catch (error) {
       const detail =
@@ -190,6 +195,11 @@ export function InterrogationDesk({
             {status}
           </p>
         </header>
+        {freshContradiction && (
+          <p className="border-b border-burgundy/30 bg-burgundy/15 px-4 py-2 font-mono text-[0.58rem] tracking-[0.16em] text-brass uppercase">
+            Potential contradiction discovered
+          </p>
+        )}
         <div
           ref={logRef}
           className="flex-1 space-y-5 overflow-y-auto px-5 py-5"
@@ -317,9 +327,12 @@ export function InterrogationDesk({
           ))}
         </Rail>
         <Rail title="Previous contradictions">
-          {contradictions.map((item) => (
-            <p key={item} className="border-l border-burgundy/40 pl-3 text-sm text-beige/65">
-              {item}
+          {suspectContradictions.length === 0 && (
+            <p className="text-sm text-beige/45">None on file yet.</p>
+          )}
+          {suspectContradictions.map((item) => (
+            <p key={item.id} className="border-l border-burgundy/40 pl-3 text-sm text-beige/65">
+              {item.explanation}
             </p>
           ))}
         </Rail>

@@ -26,21 +26,3 @@ export function toTranscriptLine(
   };
 }
 
-export const mockContradictions: Record<string, string[]> = {
-  clara: [
-    "Claims 10:30 departure — no staff on the stair.",
-    "Champagne receipt in her name two days prior.",
-  ],
-  silas: [
-    "Left at 10:52 for a bag packed before supper.",
-    "Watch found in the study, not on the victim.",
-  ],
-  jonah: [
-    "Pantry alibi against a west-hall plate at 11:08.",
-    "Household glove in terrace mud.",
-  ],
-  isolde: [
-    "Gallery at eleven — asked twice for the conservatory.",
-    "Telephone slip: do not sign until I arrive.",
-  ],
-};
