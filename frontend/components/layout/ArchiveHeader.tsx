@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AuthLinks } from "@/components/auth/AuthLinks";
 
 export function ArchiveHeader({ kicker = "The Archive" }: { kicker?: string }) {
   return (
@@ -15,12 +16,7 @@ export function ArchiveHeader({ kicker = "The Archive" }: { kicker?: string }) {
         </h1>
       </div>
       <nav className="flex items-center gap-5">
-        <Link
-          href="/profile"
-          className="font-mono text-[0.62rem] tracking-[0.22em] text-brass/80 uppercase hover:text-brass"
-        >
-          Profile
-        </Link>
+        <AuthLinks className="font-mono text-[0.62rem] tracking-[0.22em] text-brass/80 uppercase hover:text-brass" />
         <p className="hidden max-w-xs text-right font-display text-lg text-beige/55 italic md:block">
           Files are opened, never rushed.
         </p>

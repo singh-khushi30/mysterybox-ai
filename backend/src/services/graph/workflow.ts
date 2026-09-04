@@ -36,6 +36,7 @@ const GraphState = Annotation.Root({
   message: Annotation<string>(),
   evidenceId: Annotation<string | undefined>(),
   forcedReply: Annotation<string | undefined>(),
+  userId: Annotation<string | undefined>(),
   caseId: Annotation<string>(),
   detectiveContent: Annotation<string>(),
   identity: Annotation<SuspectIdentity | null>(),
@@ -62,8 +63,8 @@ const GraphState = Annotation.Root({
 
 type GraphStateType = typeof GraphState.State;
 
-async function requireActiveSession(sessionId: string) {
-  const session = await getSession(sessionId);
+async function requireActiveSession(sessionId: string, userId?: string) {
+  const session = await getSession(sessionId, userId);
   if (session.status !== "in_progress") {
     throw new HttpError(409, "Session is not active");
   }
@@ -110,8 +111,12 @@ export async function loadRecentMessages(sessionId: string, suspectId: string) {
   return ((data ?? []) as InterrogationMessage[]).reverse();
 }
 
-export async function listInterrogationMessages(sessionId: string, suspectId: string) {
-  const session = await getSession(sessionId);
+export async function listInterrogationMessages(
+  sessionId: string,
+  suspectId: string,
+  userId?: string
+) {
+  const session = await getSession(sessionId, userId);
   const suspect = await getSuspect(suspectId);
   if (suspect.case_id !== session.case_id) {
     throw new HttpError(400, "Suspect does not belong to this case");
@@ -161,7 +166,7 @@ async function loadDiscoveredEvidence(sessionId: string, caseId: string) {
 }
 
 async function loadSessionNode(state: GraphStateType) {
-  const session = await requireActiveSession(state.sessionId);
+  const session = await requireActiveSession(state.sessionId, state.userId);
   const suspect = await getSuspect(state.suspectId);
   if (suspect.case_id !== session.case_id) {
     throw new HttpError(400, "Suspect does not belong to this case");
@@ -394,6 +399,7 @@ export async function runInterrogationGraph(input: InterrogationGraphInput) {
     message: input.message,
     evidenceId: input.evidenceId,
     forcedReply: input.forcedReply,
+    userId: input.userId,
     caseId: "",
     detectiveContent: "",
     identity: null,

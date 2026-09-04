@@ -1,5 +1,6 @@
 import { supabase } from "../config/supabase.js";
 import { HttpError } from "../utils/http.js";
+import { refreshDetectiveRank } from "./profiles.js";
 import { getSession } from "./sessions.js";
 import { getSuspect } from "./suspects.js";
 import {
@@ -125,7 +126,7 @@ async function loadEvidenceByIds(ids: string[]) {
   return data ?? [];
 }
 
-async function completeSessionWithScore(sessionId: string, score: number) {
+async function completeSessionWithScore(sessionId: string, score: number, userId?: string) {
   const { data, error } = await supabase
     .from("game_sessions")
     .update({
@@ -146,7 +147,7 @@ async function completeSessionWithScore(sessionId: string, score: number) {
     return data;
   }
 
-  return getSession(sessionId);
+  return getSession(sessionId, userId);
 }
 
 function toPublicSubmission(row: AccusationRow) {
@@ -165,13 +166,17 @@ function toPublicSubmission(row: AccusationRow) {
   };
 }
 
-export async function submitAccusation(sessionId: string, input: SubmittedAccusation) {
-  const session = await getSession(sessionId);
+export async function submitAccusation(
+  sessionId: string,
+  input: SubmittedAccusation,
+  userId?: string
+) {
+  const session = await getSession(sessionId, userId);
   const existing = await getAccusationForSession(sessionId);
 
   if (existing) {
     if (session.status !== "completed") {
-      await completeSessionWithScore(sessionId, existing.total_score);
+      await completeSessionWithScore(sessionId, existing.total_score, userId);
     }
     throw new HttpError(409, "An accusation has already been sealed.");
   }
@@ -241,7 +246,11 @@ export async function submitAccusation(sessionId: string, input: SubmittedAccusa
     throw new HttpError(500, "Unable to seal the accusation");
   }
 
-  const closed = await completeSessionWithScore(sessionId, scored.total);
+  const closed = await completeSessionWithScore(sessionId, scored.total, userId);
+  const ownerId = userId ?? session.user_id;
+  if (ownerId) {
+    await refreshDetectiveRank(ownerId);
+  }
   const row = data as AccusationRow;
 
   return {
@@ -250,8 +259,8 @@ export async function submitAccusation(sessionId: string, input: SubmittedAccusa
   };
 }
 
-export async function getSessionResult(sessionId: string) {
-  const session = await getSession(sessionId);
+export async function getSessionResult(sessionId: string, userId?: string) {
+  const session = await getSession(sessionId, userId);
   const accusation = await getAccusationForSession(sessionId, {
     requireLedger: session.status === "completed",
   });
@@ -264,7 +273,7 @@ export async function getSessionResult(sessionId: string) {
   }
 
   if (session.status !== "completed") {
-    await completeSessionWithScore(sessionId, accusation.total_score);
+    await completeSessionWithScore(sessionId, accusation.total_score, userId);
   }
 
   const [truth, accused, submittedEvidence, catalog] = await Promise.all([

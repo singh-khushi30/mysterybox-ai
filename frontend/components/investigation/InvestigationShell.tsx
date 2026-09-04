@@ -10,6 +10,7 @@ import { InvestigationTopbar } from "@/components/investigation/InvestigationTop
 import { DustMotes } from "@/components/shared/DustMotes";
 import { getInvestigationStats } from "@/lib/investigation";
 import { InvestigationProgressProvider, useProgressCase } from "@/lib/investigation/progress-context";
+import { AuthGate } from "@/components/auth/AuthGate";
 import { InvestigationSessionProvider } from "@/lib/investigation/session-context";
 import type { Case } from "@/types/investigation";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
@@ -23,11 +24,13 @@ export function InvestigationShell({
   children: ReactNode;
 }) {
   return (
-    <InvestigationSessionProvider routeId={caseFile.id} caseId={caseFile.backendId}>
-      <InvestigationProgressProvider>
-        <InvestigationDesk caseFile={caseFile}>{children}</InvestigationDesk>
-      </InvestigationProgressProvider>
-    </InvestigationSessionProvider>
+    <AuthGate>
+      <InvestigationSessionProvider routeId={caseFile.id} caseId={caseFile.backendId}>
+        <InvestigationProgressProvider>
+          <InvestigationDesk caseFile={caseFile}>{children}</InvestigationDesk>
+        </InvestigationProgressProvider>
+      </InvestigationSessionProvider>
+    </AuthGate>
   );
 }
 

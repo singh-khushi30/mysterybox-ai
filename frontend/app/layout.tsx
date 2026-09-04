@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, IBM_Plex_Mono, Source_Serif_4 } from "next/font/google";
+import { AuthProvider } from "@/lib/auth/context";
 import { FilmGrain } from "@/components/shared/FilmGrain";
 import "./globals.css";
 
@@ -34,7 +35,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="relative flex min-h-full flex-col bg-ink text-beige">
         <FilmGrain />
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

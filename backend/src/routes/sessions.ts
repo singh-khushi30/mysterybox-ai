@@ -5,9 +5,12 @@ import { getInterrogation, postInterrogate } from "../controllers/interrogation.
 import { getNotes, putNotes } from "../controllers/notes.js";
 import { getSessionEvidence, postDiscoverEvidence } from "../controllers/session-evidence.js";
 import { getSessionById, patchCompleteSession, postSession } from "../controllers/sessions.js";
+import { requireAuth } from "../middleware/auth.js";
 import { asyncHandler } from "../middleware/error.js";
 
 export const sessionsRouter = Router();
+
+sessionsRouter.use(asyncHandler(requireAuth));
 
 sessionsRouter.post("/", asyncHandler(postSession));
 sessionsRouter.get("/:id/notes", asyncHandler(getNotes));

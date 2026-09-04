@@ -7,6 +7,7 @@ import { Portrait } from "@/components/shared/Portrait";
 import { ApiError, submitAccusation } from "@/lib/api";
 import { MOTIVES, WEAPONS, saveAccusation } from "@/lib/investigation/solve";
 import { persistSession } from "@/lib/investigation/session";
+import { useAuth } from "@/lib/auth/context";
 import { useProgressCase } from "@/lib/investigation/progress-context";
 import { useInvestigationSession } from "@/lib/investigation/session-context";
 import type { Case } from "@/types/investigation";
@@ -15,6 +16,7 @@ import { cn } from "@/lib/utils";
 export function SolveDesk({ caseFile }: { caseFile: Case }) {
   const liveCase = useProgressCase(caseFile);
   const { sessionId, session, ready: sessionReady, setSession } = useInvestigationSession();
+  const { user } = useAuth();
   const router = useRouter();
   const discovered = liveCase.evidence.filter((item) => item.discovered);
   const [suspectId, setSuspectId] = useState<string | null>(null);
@@ -177,7 +179,7 @@ export function SolveDesk({ caseFile }: { caseFile: Case }) {
             })
               .then((result) => {
                 setSession(result.session);
-                persistSession(caseFile.id, result.session);
+                if (user) persistSession(caseFile.id, result.session, user.id);
                 router.push(`/cases/${caseFile.id}/investigate/result`);
               })
               .catch((cause: unknown) => {

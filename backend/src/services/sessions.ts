@@ -3,15 +3,21 @@ import { getPlayableCase } from "./cases.js";
 import { listPublicEvidenceForCase } from "./evidence.js";
 import { HttpError } from "../utils/http.js";
 
-const SESSION_FIELDS = "id, case_id, status, started_at, completed_at, score";
+const SESSION_FIELDS = "id, case_id, user_id, status, started_at, completed_at, score";
 
-export async function createSession(caseId: string) {
+export async function createSession(caseId: string, userId: string) {
   await getPlayableCase(caseId);
+
+  const existing = await findActiveSession(caseId, userId);
+  if (existing) {
+    return existing;
+  }
 
   const { data, error } = await supabase
     .from("game_sessions")
     .insert({
       case_id: caseId,
+      user_id: userId,
       status: "in_progress",
       score: null,
     })
@@ -23,6 +29,24 @@ export async function createSession(caseId: string) {
   }
 
   await seedDefaultDiscoveries(data.id, data.case_id);
+  return data;
+}
+
+export async function findActiveSession(caseId: string, userId: string) {
+  const { data, error } = await supabase
+    .from("game_sessions")
+    .select(SESSION_FIELDS)
+    .eq("case_id", caseId)
+    .eq("user_id", userId)
+    .eq("status", "in_progress")
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new HttpError(500, "Unable to load session");
+  }
+
   return data;
 }
 
@@ -46,7 +70,7 @@ async function seedDefaultDiscoveries(sessionId: string, caseId: string) {
   }
 }
 
-export async function getSession(id: string) {
+export async function getSession(id: string, userId?: string) {
   const { data, error } = await supabase
     .from("game_sessions")
     .select(SESSION_FIELDS)
@@ -59,12 +83,15 @@ export async function getSession(id: string) {
   if (!data) {
     throw new HttpError(404, "Session not found");
   }
+  if (userId && data.user_id !== userId) {
+    throw new HttpError(404, "Session not found");
+  }
 
   return data;
 }
 
-export async function completeSession(id: string) {
-  const existing = await getSession(id);
+export async function completeSession(id: string, userId?: string) {
+  const existing = await getSession(id, userId);
 
   if (existing.status === "completed") {
     return existing;
@@ -85,4 +112,18 @@ export async function completeSession(id: string) {
   }
 
   return data;
+}
+
+export async function listSessionsForUser(userId: string) {
+  const { data, error } = await supabase
+    .from("game_sessions")
+    .select(SESSION_FIELDS)
+    .eq("user_id", userId)
+    .order("started_at", { ascending: false });
+
+  if (error) {
+    throw new HttpError(500, "Unable to load your files");
+  }
+
+  return data ?? [];
 }

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { HeroExperience } from "@/components/three/HeroExperience";
+import { AuthLinks } from "@/components/auth/AuthLinks";
 import { WaxSealButton } from "@/components/shared/WaxSealButton";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { useViewportMode } from "@/hooks/useViewportMode";
@@ -75,9 +76,7 @@ export function LandingView() {
             <Link href="/cases" className="hover:text-brass">
               Cases
             </Link>
-            <Link href="/profile" className="hover:text-brass">
-              Profile
-            </Link>
+            <AuthLinks className="hover:text-brass" />
           </nav>
         </header>
 

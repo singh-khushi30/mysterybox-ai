@@ -55,6 +55,7 @@ export type InterrogationGraphInput = {
   message: string;
   evidenceId?: string;
   forcedReply?: string;
+  userId?: string;
 };
 
 export type InterrogationGraphState = InterrogationGraphInput & {

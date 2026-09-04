@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
+import { getRequestUser } from "../middleware/auth.js";
 import { interrogateSuspect, listInterrogationMessages } from "../services/interrogation.js";
 import { HttpError, ok } from "../utils/http.js";
 import { parseId } from "../utils/ids.js";
@@ -11,6 +12,7 @@ const interrogateSchema = z.object({
 });
 
 export async function postInterrogate(req: Request, res: Response) {
+  const user = getRequestUser(req);
   const sessionId = parseId(req.params.id, "session id");
   const parsed = interrogateSchema.safeParse(req.body ?? {});
   if (!parsed.success) {
@@ -22,6 +24,7 @@ export async function postInterrogate(req: Request, res: Response) {
     suspectId: parsed.data.suspectId,
     message: parsed.data.message,
     evidenceId: parsed.data.evidenceId,
+    userId: user.id,
   });
 
   res.status(201).json(
@@ -37,8 +40,9 @@ export async function postInterrogate(req: Request, res: Response) {
 }
 
 export async function getInterrogation(req: Request, res: Response) {
+  const user = getRequestUser(req);
   const sessionId = parseId(req.params.id, "session id");
   const suspectId = parseId(req.params.suspectId, "suspect id");
-  const data = await listInterrogationMessages(sessionId, suspectId);
+  const data = await listInterrogationMessages(sessionId, suspectId, user.id);
   res.json(ok(data));
 }

@@ -1,3 +1,4 @@
+import { getAccessToken } from "@/lib/auth/token";
 import type {
   ApiAccusationSubmission,
   ApiCase,
@@ -8,6 +9,7 @@ import type {
   ApiInterrogationMessage,
   ApiInterrogationTurn,
   ApiNote,
+  ApiProfile,
   ApiSession,
   ApiSuccess,
   ApiSuspect,
@@ -33,6 +35,7 @@ function apiBase() {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = await getAccessToken();
   let response: Response;
   try {
     response = await fetch(`${apiBase()}${path}`, {
@@ -40,6 +43,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       ...init,
       headers: {
         ...(init?.body ? { "Content-Type": "application/json" } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...init?.headers,
       },
     });
@@ -145,6 +149,28 @@ export function interrogateSuspect(
   return request<ApiInterrogationTurn>(`/api/sessions/${sessionId}/interrogate`, {
     method: "POST",
     body: JSON.stringify(input),
+  });
+}
+
+export function registerAccount(input: {
+  email: string;
+  password: string;
+  displayName: string;
+}) {
+  return request<{ id: string; email: string }>("/api/auth/register", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function getProfile() {
+  return request<ApiProfile>("/api/profile");
+}
+
+export function updateProfile(displayName: string) {
+  return request<ApiProfile>("/api/profile", {
+    method: "PATCH",
+    body: JSON.stringify({ displayName }),
   });
 }
 

@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { useAuth } from "@/lib/auth/context";
+import { initialsFromDisplayName } from "@/lib/investigation/profile";
 import { Portrait } from "@/components/shared/Portrait";
 
 type InvestigationTopbarProps = {
@@ -15,6 +17,9 @@ export function InvestigationTopbar({
   title,
   progress,
 }: InvestigationTopbarProps) {
+  const { profile } = useAuth();
+  const name = profile?.displayName ?? "Detective";
+  const rank = profile?.detectiveRank ?? "Rookie Detective";
   return (
     <header className="flex flex-wrap items-center justify-between gap-4 border-b border-brass/15 pb-4">
       <div>
@@ -43,11 +48,11 @@ export function InvestigationTopbar({
           className="flex items-center gap-2 rounded-sm transition-transform duration-300 hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-brass/70 focus-visible:outline-none"
           aria-label="Open detective profile"
         >
-          <Portrait initials="KV" className="size-9 text-sm" />
+          <Portrait initials={initialsFromDisplayName(name)} className="size-9 text-sm" />
           <div className="hidden sm:block">
-            <p className="font-display text-sm text-paper">K. Vale</p>
+            <p className="font-display text-sm text-paper">{name}</p>
             <p className="font-mono text-[0.58rem] tracking-[0.18em] text-beige/45 uppercase">
-              Consulting detective
+              {rank}
             </p>
           </div>
         </Link>

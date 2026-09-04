@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { CaseOpeningExperience } from "@/components/three/CaseOpeningExperience";
 import { WaxSealButton } from "@/components/shared/WaxSealButton";
 import { ApiError } from "@/lib/api";
+import { useAuth } from "@/lib/auth/context";
 import { startInvestigationSession } from "@/lib/investigation/session";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { useViewportMode } from "@/hooks/useViewportMode";
@@ -18,15 +19,20 @@ export function CaseDossier({ caseFile }: { caseFile: CaseFile }) {
   const reducedMotion = usePrefersReducedMotion();
   const [opening, setOpening] = useState(reducedMotion);
   const [showDossier, setShowDossier] = useState(reducedMotion);
+  const { user, ready: authReady } = useAuth();
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
 
   async function beginInvestigation() {
     if (starting || !caseFile.backendId) return;
+    if (!user) {
+      router.push(`/login?next=${encodeURIComponent(`/cases/${caseFile.id}`)}`);
+      return;
+    }
     setStarting(true);
     setStartError(null);
     try {
-      await startInvestigationSession(caseFile.id, caseFile.backendId);
+      await startInvestigationSession(caseFile.id, caseFile.backendId, user.id);
       router.push(`/cases/${caseFile.id}/investigate`);
     } catch (error) {
       setStartError(
@@ -170,8 +176,15 @@ export function CaseDossier({ caseFile }: { caseFile: CaseFile }) {
                 </section>
 
                 <div>
-                  <WaxSealButton disabled={starting} onClick={() => void beginInvestigation()}>
-                    {starting ? "Opening the desk…" : "Begin Investigation"}
+                  <WaxSealButton
+                    disabled={starting || !authReady}
+                    onClick={() => void beginInvestigation()}
+                  >
+                    {starting
+                      ? "Opening the desk…"
+                      : user
+                        ? "Begin Investigation"
+                        : "Sign in to begin"}
                   </WaxSealButton>
                   {startError && (
                     <p className="mt-3 font-display text-sm text-beige/55 italic">{startError}</p>

@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
+import { getRequestUser } from "../middleware/auth.js";
 import { getSessionResult, submitAccusation } from "../services/accusations.js";
 import { HttpError, ok } from "../utils/http.js";
 import { parseId } from "../utils/ids.js";
@@ -18,6 +19,7 @@ const accusationSchema = z
   });
 
 export async function postAccusation(req: Request, res: Response) {
+  const user = getRequestUser(req);
   const sessionId = parseId(req.params.id, "session id");
   const parsed = accusationSchema.safeParse(req.body ?? {});
   if (!parsed.success) {
@@ -29,19 +31,24 @@ export async function postAccusation(req: Request, res: Response) {
     throw new HttpError(400, "Invalid accusation");
   }
 
-  const data = await submitAccusation(sessionId, {
-    suspectId: parsed.data.suspectId,
-    motive: parsed.data.motive,
-    method,
-    evidenceIds: [...new Set(parsed.data.evidenceIds)],
-    reasoning: parsed.data.reasoning,
-  });
+  const data = await submitAccusation(
+    sessionId,
+    {
+      suspectId: parsed.data.suspectId,
+      motive: parsed.data.motive,
+      method,
+      evidenceIds: [...new Set(parsed.data.evidenceIds)],
+      reasoning: parsed.data.reasoning,
+    },
+    user.id
+  );
 
   res.status(201).json(ok(data));
 }
 
 export async function getResult(req: Request, res: Response) {
+  const user = getRequestUser(req);
   const sessionId = parseId(req.params.id, "session id");
-  const data = await getSessionResult(sessionId);
+  const data = await getSessionResult(sessionId, user.id);
   res.json(ok(data));
 }

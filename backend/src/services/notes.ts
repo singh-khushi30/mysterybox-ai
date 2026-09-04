@@ -4,8 +4,8 @@ import { HttpError } from "../utils/http.js";
 
 const NOTE_FIELDS = "id, session_id, content, created_at, updated_at";
 
-export async function getSessionNotes(sessionId: string) {
-  await getSession(sessionId);
+export async function getSessionNotes(sessionId: string, userId?: string) {
+  await getSession(sessionId, userId);
 
   const { data, error } = await supabase
     .from("detective_notes")
@@ -25,8 +25,8 @@ export async function getSessionNotes(sessionId: string) {
   };
 }
 
-export async function saveSessionNotes(sessionId: string, content: string) {
-  await getSession(sessionId);
+export async function saveSessionNotes(sessionId: string, content: string, userId?: string) {
+  await getSession(sessionId, userId);
 
   const { data: existing, error: existingError } = await supabase
     .from("detective_notes")

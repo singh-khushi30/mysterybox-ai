@@ -13,12 +13,20 @@ export async function interrogateSuspect(input: {
   message: string;
   evidenceId?: string;
   forcedReply?: string;
+  userId?: string;
 }) {
-  const session = await getSession(input.sessionId);
+  const session = await getSession(input.sessionId, input.userId);
   const suspect = await getSuspect(input.suspectId);
   if (suspect.case_id !== session.case_id) {
     throw new HttpError(400, "Suspect does not belong to this case");
   }
 
-  return runInterrogationGraph(input);
+  return runInterrogationGraph({
+    sessionId: input.sessionId,
+    suspectId: input.suspectId,
+    message: input.message,
+    evidenceId: input.evidenceId,
+    forcedReply: input.forcedReply,
+    userId: input.userId,
+  });
 }

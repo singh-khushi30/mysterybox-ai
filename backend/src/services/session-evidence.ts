@@ -23,8 +23,8 @@ async function ensureDefaultDiscoveries(sessionId: string, caseId: string) {
   }
 }
 
-export async function listSessionEvidence(sessionId: string) {
-  const session = await getSession(sessionId);
+export async function listSessionEvidence(sessionId: string, userId?: string) {
+  const session = await getSession(sessionId, userId);
   await ensureDefaultDiscoveries(sessionId, session.case_id);
 
   const [{ data, error }, catalog] = await Promise.all([
@@ -46,8 +46,12 @@ export async function listSessionEvidence(sessionId: string) {
     .filter((item): item is NonNullable<typeof item> => Boolean(item));
 }
 
-export async function discoverSessionEvidence(sessionId: string, evidenceId: string) {
-  const session = await getSession(sessionId);
+export async function discoverSessionEvidence(
+  sessionId: string,
+  evidenceId: string,
+  userId?: string
+) {
+  const session = await getSession(sessionId, userId);
   const evidence = await getPublicEvidence(evidenceId);
 
   if (evidence.case_id !== session.case_id) {

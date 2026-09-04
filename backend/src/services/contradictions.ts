@@ -1,8 +1,8 @@
 import { listSessionContradictions } from "./graph/persist.js";
 import { getSession } from "./sessions.js";
 
-export async function listContradictionsForSession(sessionId: string) {
-  await getSession(sessionId);
+export async function listContradictionsForSession(sessionId: string, userId?: string) {
+  await getSession(sessionId, userId);
   const rows = await listSessionContradictions(sessionId);
   return rows.map((row) => ({
     id: row.id,

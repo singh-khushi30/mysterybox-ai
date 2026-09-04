@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
+import { getRequestUser } from "../middleware/auth.js";
 import { completeSession, createSession, getSession } from "../services/sessions.js";
 import { HttpError, ok } from "../utils/http.js";
 import { parseId } from "../utils/ids.js";
@@ -25,19 +26,22 @@ function parseCaseId(body: unknown) {
 }
 
 export async function postSession(req: Request, res: Response) {
+  const user = getRequestUser(req);
   const caseId = parseCaseId(req.body);
-  const data = await createSession(caseId);
+  const data = await createSession(caseId, user.id);
   res.status(201).json(ok(data));
 }
 
 export async function getSessionById(req: Request, res: Response) {
+  const user = getRequestUser(req);
   const id = parseId(req.params.id, "session id");
-  const data = await getSession(id);
+  const data = await getSession(id, user.id);
   res.json(ok(data));
 }
 
 export async function patchCompleteSession(req: Request, res: Response) {
+  const user = getRequestUser(req);
   const id = parseId(req.params.id, "session id");
-  const data = await completeSession(id);
+  const data = await completeSession(id, user.id);
   res.json(ok(data));
 }

@@ -58,10 +58,39 @@ export type ApiSessionStatus = "in_progress" | "completed" | "abandoned";
 export type ApiSession = {
   id: string;
   case_id: string;
+  user_id?: string | null;
   status: ApiSessionStatus;
   started_at: string;
   completed_at: string | null;
   score: number | null;
+};
+
+export type ApiProfileStats = {
+  completedCases: number;
+  averageScore: number;
+  accuracy: number;
+  currentInvestigation: {
+    sessionId: string;
+    caseId: string;
+    title: string;
+    slug: string;
+  } | null;
+  recentlySolved: Array<{
+    id: string;
+    title: string;
+    year: string;
+    score: number;
+  }>;
+};
+
+export type ApiProfile = {
+  id: string;
+  displayName: string;
+  detectiveRank: string;
+  avatarUrl: string | null;
+  createdAt: string;
+  stats: ApiProfileStats;
+  achievements: Array<{ id: string; title: string; detail: string }>;
 };
 
 export type ApiInterrogationRole = "detective" | "suspect";
