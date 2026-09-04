@@ -4,13 +4,17 @@ import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { WaxSealButton } from "@/components/shared/WaxSealButton";
 import { Portrait } from "@/components/shared/Portrait";
+import { ApiError, submitAccusation } from "@/lib/api";
 import { MOTIVES, WEAPONS, saveAccusation } from "@/lib/investigation/solve";
+import { persistSession } from "@/lib/investigation/session";
 import { useProgressCase } from "@/lib/investigation/progress-context";
+import { useInvestigationSession } from "@/lib/investigation/session-context";
 import type { Case } from "@/types/investigation";
 import { cn } from "@/lib/utils";
 
 export function SolveDesk({ caseFile }: { caseFile: Case }) {
   const liveCase = useProgressCase(caseFile);
+  const { sessionId, session, ready: sessionReady, setSession } = useInvestigationSession();
   const router = useRouter();
   const discovered = liveCase.evidence.filter((item) => item.discovered);
   const [suspectId, setSuspectId] = useState<string | null>(null);
@@ -18,8 +22,21 @@ export function SolveDesk({ caseFile }: { caseFile: Case }) {
   const [weapon, setWeapon] = useState<string | null>(null);
   const [evidenceIds, setEvidenceIds] = useState<string[]>([]);
   const [reasoning, setReasoning] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const ready = Boolean(suspectId && motive && weapon && evidenceIds.length && reasoning.trim());
+  const sessionActive = session?.status === "in_progress";
+  const alreadyClosed = session?.status === "completed";
+  const ready = Boolean(
+    sessionId &&
+      sessionActive &&
+      suspectId &&
+      motive &&
+      weapon &&
+      evidenceIds.length &&
+      reasoning.trim() &&
+      !submitting
+  );
 
   function toggleEvidence(id: string) {
     setEvidenceIds((current) =>
@@ -122,23 +139,62 @@ export function SolveDesk({ caseFile }: { caseFile: Case }) {
         />
       </Field>
 
+      {error && (
+        <p className="mt-6 text-center font-display text-beige/70 italic">{error}</p>
+      )}
+      {alreadyClosed && (
+        <p className="mt-6 text-center font-display text-beige/60 italic">
+          The seal is already on the paper.
+        </p>
+      )}
+
       <div className="mt-10 flex justify-center">
         <WaxSealButton
           className="min-w-64 px-12 py-4 text-xl tracking-[0.28em]"
-          disabled={!ready}
+          disabled={alreadyClosed ? false : !ready || !sessionReady}
           onClick={() => {
-            if (!suspectId || !motive || !weapon) return;
-            saveAccusation(caseFile.id, {
+            if (alreadyClosed) {
+              router.push(`/cases/${caseFile.id}/investigate/result`);
+              return;
+            }
+            if (!sessionId || !suspectId || !motive || !weapon || submitting) return;
+            setSubmitting(true);
+            setError(null);
+            const payload = {
               suspectId,
               motive,
               weapon,
               evidenceIds,
               reasoning: reasoning.trim(),
-            });
-            router.push(`/cases/${caseFile.id}/investigate/result`);
+            };
+            saveAccusation(caseFile.id, payload);
+            submitAccusation(sessionId, {
+              suspectId,
+              motive,
+              method: weapon,
+              evidenceIds,
+              reasoning: payload.reasoning,
+            })
+              .then((result) => {
+                setSession(result.session);
+                persistSession(caseFile.id, result.session);
+                router.push(`/cases/${caseFile.id}/investigate/result`);
+              })
+              .catch((cause: unknown) => {
+                setSubmitting(false);
+                setError(
+                  cause instanceof ApiError
+                    ? cause.message
+                    : "The bureau could not take the seal."
+                );
+              });
           }}
         >
-          Submit accusation
+          {alreadyClosed
+            ? "See the result"
+            : submitting
+              ? "Sealing…"
+              : "Submit accusation"}
         </WaxSealButton>
       </div>
     </section>

@@ -8,12 +8,14 @@ type SessionContextValue = {
   session: ApiSession | null;
   sessionId: string | null;
   ready: boolean;
+  setSession: (session: ApiSession | null) => void;
 };
 
 const SessionContext = createContext<SessionContextValue>({
   session: null,
   sessionId: null,
   ready: false,
+  setSession: () => undefined,
 });
 
 export function InvestigationSessionProvider({
@@ -46,7 +48,9 @@ export function InvestigationSessionProvider({
   }, [routeId, caseId]);
 
   return (
-    <SessionContext.Provider value={{ session, sessionId: session?.id ?? null, ready }}>
+    <SessionContext.Provider
+      value={{ session, sessionId: session?.id ?? null, ready, setSession }}
+    >
       {children}
     </SessionContext.Provider>
   );

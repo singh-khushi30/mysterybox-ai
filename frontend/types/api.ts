@@ -97,6 +97,57 @@ export type ApiContradiction = {
   discovered_at: string;
 };
 
+export type ApiAccusationScores = {
+  culprit: number;
+  evidence: number;
+  motive: number;
+  reasoning: number;
+  total: number;
+};
+
+export type ApiAccusationSubmission = {
+  id: string;
+  sessionId: string;
+  suspectId: string;
+  culpritCorrect: boolean;
+  scores: ApiAccusationScores;
+  session: ApiSession;
+};
+
+export type ApiCaseResult = {
+  culpritCorrect: boolean;
+  totalScore: number;
+  rank: string;
+  breakdown: {
+    culprit: number;
+    evidence: number;
+    motive: number;
+    reasoning: number;
+  };
+  actual: {
+    culpritId: string;
+    culpritName: string;
+    motive: string;
+    method: string;
+    explanation: string;
+  };
+  submitted: {
+    suspectId: string;
+    suspectName: string;
+    motive: string;
+    method: string;
+    reasoning: string;
+    evidence: Array<{ id: string; title: string }>;
+  };
+  feedback: string;
+  session: {
+    id: string;
+    status: "completed";
+    score: number;
+    completed_at: string | null;
+  };
+};
+
 export type ApiSuccess<T> = {
   success: true;
   data: T;

@@ -10,7 +10,8 @@
     "index:knowledge": "tsx scripts/index-case-knowledge.ts",
     "test:retrieval": "tsx scripts/test-case-retrieval.ts",
     "test:interrogation": "tsx scripts/test-interrogation.ts",
-    "test:graph": "tsx scripts/test-graph.ts"
+    "test:graph": "tsx scripts/test-graph.ts",
+    "test:accusation": "tsx scripts/test-accusation.ts"
   },
   "dependencies": {
     "@google/genai": "^2.21.0",

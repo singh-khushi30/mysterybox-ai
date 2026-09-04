@@ -31,12 +31,3 @@ export function loadAccusation(caseId: string): Accusation | null {
   }
 }
 
-export const MOCK_SOLUTION = {
-  suspectName: "Isolde Hart",
-  motive: "A private correspondence Edmund would not surrender",
-  weapon: "The champagne coupe, already cracked",
-  score: 88,
-  rank: "Inspector",
-  summary:
-    "The unsigned letter was never meant to leave the conservatory. Isolde arrived after the telephone slip, asked twice for the glasshouse, and was unaccounted for when the west plate fired. The true hour is 11:17.",
-};

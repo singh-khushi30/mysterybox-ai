@@ -1,5 +1,7 @@
 import type {
+  ApiAccusationSubmission,
   ApiCase,
+  ApiCaseResult,
   ApiContradiction,
   ApiEvidence,
   ApiFailure,
@@ -148,6 +150,26 @@ export function interrogateSuspect(
 
 export function getSessionContradictions(sessionId: string) {
   return request<ApiContradiction[]>(`/api/sessions/${sessionId}/contradictions`);
+}
+
+export function submitAccusation(
+  sessionId: string,
+  input: {
+    suspectId: string;
+    motive: string;
+    method: string;
+    evidenceIds: string[];
+    reasoning: string;
+  }
+) {
+  return request<ApiAccusationSubmission>(`/api/sessions/${sessionId}/accusation`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function getSessionResult(sessionId: string) {
+  return request<ApiCaseResult>(`/api/sessions/${sessionId}/result`);
 }
 
 const uuidPattern =

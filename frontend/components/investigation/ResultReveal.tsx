@@ -1,20 +1,27 @@
 "use client";
 
-import { useMemo, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { loadAccusation, MOCK_SOLUTION } from "@/lib/investigation/solve";
+import { ApiError, getSessionResult } from "@/lib/api";
+import { loadAccusation } from "@/lib/investigation/solve";
+import { useInvestigationSession } from "@/lib/investigation/session-context";
+import type { ApiCaseResult } from "@/types/api";
 import type { Case } from "@/types/investigation";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 
 export function ResultReveal({ caseFile }: { caseFile: Case }) {
   const reduced = usePrefersReducedMotion();
+  const { sessionId, ready: sessionReady } = useInvestigationSession();
+  const [result, setResult] = useState<ApiCaseResult | null>(null);
+  const [status, setStatus] = useState<"loading" | "open" | "ready" | "error">("loading");
+  const [message, setMessage] = useState("Opening the seal…");
   const accusationRaw = useSyncExternalStore(
     subscribeAccusation,
     () => window.sessionStorage.getItem(`mysterybox.accusation.${caseFile.id}`),
     () => null
   );
-  const accusation = useMemo(() => {
+  const localAccusation = useMemo(() => {
     if (!accusationRaw) return null;
     try {
       return JSON.parse(accusationRaw) as ReturnType<typeof loadAccusation>;
@@ -22,10 +29,54 @@ export function ResultReveal({ caseFile }: { caseFile: Case }) {
       return null;
     }
   }, [accusationRaw]);
-  const accused = caseFile.suspects.find((suspect) => suspect.id === accusation?.suspectId);
-  const used = caseFile.evidence.filter((item) =>
-    accusation?.evidenceIds.includes(item.id)
-  );
+
+  useEffect(() => {
+    if (!sessionReady) return;
+    if (!sessionId) {
+      setStatus("open");
+      setMessage("The seal has not been set.");
+      return;
+    }
+
+    let cancelled = false;
+    setStatus("loading");
+    getSessionResult(sessionId)
+      .then((data) => {
+        if (cancelled) return;
+        setResult(data);
+        setStatus("ready");
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        if (error instanceof ApiError && error.status === 409) {
+          setStatus("open");
+          setMessage(error.message);
+          return;
+        }
+        setStatus("error");
+        setMessage(
+          error instanceof ApiError ? error.message : "The closing file could not be opened."
+        );
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId, sessionReady]);
+
+  const accused =
+    result?.submitted.suspectName ??
+    caseFile.suspects.find((suspect) => suspect.id === localAccusation?.suspectId)?.name;
+  const used = result
+    ? result.submitted.evidence.map((item) => {
+        const local = caseFile.evidence.find((entry) => entry.id === item.id);
+        return {
+          id: item.id,
+          fileNumber: local?.fileNumber ?? "EV",
+          title: item.title,
+        };
+      })
+    : caseFile.evidence.filter((item) => localAccusation?.evidenceIds.includes(item.id));
 
   return (
     <section className="relative mx-auto max-w-3xl overflow-hidden py-6 text-center">
@@ -49,40 +100,62 @@ export function ResultReveal({ caseFile }: { caseFile: Case }) {
         initial={reduced ? false : { opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.7, duration: 0.8 }}
+        className="mt-4 font-mono text-[0.68rem] tracking-[0.28em] text-brass uppercase"
+      >
+        {status === "ready"
+          ? result?.culpritCorrect
+            ? "Solved"
+            : "Incorrect"
+          : status === "loading"
+            ? "Pending"
+            : "Unsealed"}
+      </motion.p>
+      <motion.p
+        initial={reduced ? false : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.7, duration: 0.8 }}
         className="mt-4 font-display text-xl text-beige/70 italic"
       >
-        The conservatory is quiet. The files remain.
+        {status === "ready"
+          ? result?.feedback ?? "The conservatory is quiet. The files remain."
+          : status === "loading"
+            ? "Opening the seal…"
+            : message}
       </motion.p>
 
       <div className="mt-12 grid gap-4 sm:grid-cols-2">
-        <RevealCard delay={0.85} label="Score" value={`${MOCK_SOLUTION.score}`}>
-          of a possible hundred, as the bureau scores a first closing.
+        <RevealCard delay={0.85} label="Score" value={result ? `${result.totalScore}` : "—"}>
+          {result
+            ? `Culprit ${result.breakdown.culprit} · Evidence ${result.breakdown.evidence} · Motive ${result.breakdown.motive} · Reasoning ${result.breakdown.reasoning}`
+            : "of a possible hundred, as the bureau scores a first closing."}
         </RevealCard>
-        <RevealCard delay={1} label="Detective Rank" value={MOCK_SOLUTION.rank}>
+        <RevealCard delay={1} label="Detective Rank" value={result?.rank ?? "—"}>
           The seal is yours. The next folder is not yet on the desk.
         </RevealCard>
       </div>
 
-      <motion.article
-        initial={reduced ? false : { opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1.15, duration: 0.6 }}
-        className="paper-texture mt-8 p-6 text-left text-[#2d2118] shadow-[0_24px_60px_rgb(0_0_0/40%)]"
-      >
-        <p className="font-mono text-[0.58rem] tracking-[0.22em] uppercase">True solution</p>
-        <h3 className="mt-2 font-display text-3xl">{MOCK_SOLUTION.suspectName}</h3>
-        <p className="mt-3 leading-7">{MOCK_SOLUTION.summary}</p>
-        <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
-          <div>
-            <dt className="font-mono text-[0.58rem] tracking-[0.16em] uppercase">Motive</dt>
-            <dd className="mt-1 font-display text-lg">{MOCK_SOLUTION.motive}</dd>
-          </div>
-          <div>
-            <dt className="font-mono text-[0.58rem] tracking-[0.16em] uppercase">Instrument</dt>
-            <dd className="mt-1 font-display text-lg">{MOCK_SOLUTION.weapon}</dd>
-          </div>
-        </dl>
-      </motion.article>
+      {status === "ready" && result && (
+        <motion.article
+          initial={reduced ? false : { opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.15, duration: 0.6 }}
+          className="paper-texture mt-8 p-6 text-left text-[#2d2118] shadow-[0_24px_60px_rgb(0_0_0/40%)]"
+        >
+          <p className="font-mono text-[0.58rem] tracking-[0.22em] uppercase">True solution</p>
+          <h3 className="mt-2 font-display text-3xl">{result.actual.culpritName}</h3>
+          <p className="mt-3 leading-7">{result.actual.explanation}</p>
+          <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
+            <div>
+              <dt className="font-mono text-[0.58rem] tracking-[0.16em] uppercase">Motive</dt>
+              <dd className="mt-1 font-display text-lg">{result.actual.motive}</dd>
+            </div>
+            <div>
+              <dt className="font-mono text-[0.58rem] tracking-[0.16em] uppercase">Instrument</dt>
+              <dd className="mt-1 font-display text-lg">{result.actual.method}</dd>
+            </div>
+          </dl>
+        </motion.article>
+      )}
 
       <motion.div
         initial={reduced ? false : { opacity: 0 }}
@@ -95,12 +168,18 @@ export function ResultReveal({ caseFile }: { caseFile: Case }) {
             Your accusation
           </h3>
           <p className="mt-2 font-display text-2xl text-paper">
-            {accused?.name ?? "Unfiled"}
+            {result?.submitted.suspectName ?? accused ?? "Unfiled"}
           </p>
-          <p className="mt-2 text-sm text-beige/60">{accusation?.motive}</p>
-          <p className="mt-1 text-sm text-beige/60">{accusation?.weapon}</p>
-          {accusation?.reasoning && (
-            <p className="mt-3 font-display text-beige/70 italic">“{accusation.reasoning}”</p>
+          <p className="mt-2 text-sm text-beige/60">
+            {result?.submitted.motive ?? localAccusation?.motive}
+          </p>
+          <p className="mt-1 text-sm text-beige/60">
+            {result?.submitted.method ?? localAccusation?.weapon}
+          </p>
+          {(result?.submitted.reasoning ?? localAccusation?.reasoning) && (
+            <p className="mt-3 font-display text-beige/70 italic">
+              “{result?.submitted.reasoning ?? localAccusation?.reasoning}”
+            </p>
           )}
         </div>
         <div className="border border-brass/15 p-5">
