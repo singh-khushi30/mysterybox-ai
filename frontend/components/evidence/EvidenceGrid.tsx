@@ -114,7 +114,7 @@ function EvidenceCard({
         <span className="absolute top-3 left-3 font-mono text-[0.58rem] tracking-[0.2em] text-brass/80 uppercase">
           {item.fileNumber}
         </span>
-        <span className="absolute right-3 bottom-3 font-display text-lg text-paper/80">
+        <span className="absolute right-3 bottom-3 max-w-[70%] text-right font-display text-lg break-words text-paper/80">
           {item.imageLabel}
         </span>
         {!item.discovered && (
@@ -133,7 +133,7 @@ function EvidenceCard({
         <p className="font-mono text-[0.58rem] tracking-[0.18em] text-beige/40 uppercase">
           {evidenceKindLabel(item.kind)}
         </p>
-        <h3 className="mt-1 font-display text-xl text-paper">
+        <h3 className="mt-1 font-display text-xl break-words text-paper">
           {item.discovered ? item.title : "Undiscovered"}
         </h3>
         <p className="mt-2 line-clamp-2 text-sm text-beige/55">

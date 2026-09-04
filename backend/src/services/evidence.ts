@@ -5,6 +5,33 @@ import { getPlayableCase } from "./cases.js";
 const EVIDENCE_FIELDS =
   "id, case_id, title, type, description, file_url, location_found, discovered_by_default, importance, created_at";
 
+type PublicEvidence = {
+  id: string;
+  case_id: string;
+  title: string;
+  type: string;
+  description: string;
+  file_url: string | null;
+  location_found: string | null;
+  discovered_by_default: boolean;
+  importance: string;
+  created_at: string;
+};
+
+export function redactHiddenEvidence<T extends PublicEvidence>(item: T): T {
+  if (item.discovered_by_default) {
+    return item;
+  }
+
+  return {
+    ...item,
+    description: "",
+    file_url: null,
+    location_found: null,
+    importance: "low",
+  };
+}
+
 export async function listVisibleEvidenceForCase(caseId: string) {
   await getPlayableCase(caseId);
 

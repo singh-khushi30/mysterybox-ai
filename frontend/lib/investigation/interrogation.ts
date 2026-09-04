@@ -1,8 +1,6 @@
 import type { ApiInterrogationMessage } from "@/types/api";
 import type { TranscriptLine } from "@/types/board";
 
-const DETECTIVE = "Det. Vale";
-
 export function suspectScriptKey(name: string) {
   return name.replace(/^Dr\.\s+/, "").split(/\s+/)[0]?.toLowerCase() ?? "";
 }
@@ -15,12 +13,13 @@ export function formatInterviewTime(value: string) {
 
 export function toTranscriptLine(
   message: ApiInterrogationMessage,
-  suspectName: string
+  suspectName: string,
+  detectiveName = "Detective"
 ): TranscriptLine {
   return {
     id: message.id,
     speaker: message.role,
-    name: message.role === "detective" ? DETECTIVE : suspectName,
+    name: message.role === "detective" ? detectiveName : suspectName,
     time: formatInterviewTime(message.created_at),
     text: message.content,
   };

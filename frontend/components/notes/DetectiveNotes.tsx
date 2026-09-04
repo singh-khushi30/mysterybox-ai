@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { getSessionNotes, saveSessionNotes } from "@/lib/api";
 import { useInvestigationSession } from "@/lib/investigation/session-context";
 
-export function DetectiveNotes({ caseId: _caseId }: { caseId: string }) {
+export function DetectiveNotes() {
   const { sessionId, ready: sessionReady } = useInvestigationSession();
   const [value, setValue] = useState("");
   const [status, setStatus] = useState("Opening…");
@@ -16,8 +16,10 @@ export function DetectiveNotes({ caseId: _caseId }: { caseId: string }) {
   useEffect(() => {
     if (!sessionReady) return;
     if (!sessionId) {
-      setStatus("No session");
-      setLoaded(true);
+      void Promise.resolve().then(() => {
+        setStatus("No session");
+        setLoaded(true);
+      });
       return;
     }
 
@@ -82,6 +84,7 @@ export function DetectiveNotes({ caseId: _caseId }: { caseId: string }) {
         </div>
         <textarea
           value={value}
+          maxLength={20000}
           disabled={!loaded || !sessionId}
           onChange={(event) => {
             const next = event.target.value;

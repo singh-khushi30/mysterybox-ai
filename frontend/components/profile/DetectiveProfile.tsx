@@ -23,7 +23,9 @@ function ProfileDesk() {
   const rank = profile?.detectiveRank ?? "Rookie Detective";
   const stats = profile?.stats;
   const current = stats?.currentInvestigation;
-  const deskHref = current ? "/cases/001/investigate" : "/cases";
+  const deskHref = current
+    ? `/cases/${current.slug === "the-last-guest-at-blackwood-manor" ? "001" : current.slug}/investigate`
+    : "/cases";
 
   return (
     <main className="desk-blotter relative min-h-dvh px-6 py-10 md:px-12">

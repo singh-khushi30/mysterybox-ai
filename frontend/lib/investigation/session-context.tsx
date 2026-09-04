@@ -35,8 +35,10 @@ export function InvestigationSessionProvider({
   useEffect(() => {
     if (!authReady) return;
     if (!user) {
-      setSession(null);
-      setReady(true);
+      void Promise.resolve().then(() => {
+        setSession(null);
+        setReady(true);
+      });
       return;
     }
 

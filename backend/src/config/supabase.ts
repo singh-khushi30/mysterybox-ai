@@ -15,6 +15,7 @@ export const supabase = createClient(supabaseUrl, supabaseSecretKey, {
   auth: {
     persistSession: false,
     autoRefreshToken: false,
+    detectSessionInUrl: false,
   },
   realtime: {
     transport: WebSocket as never,

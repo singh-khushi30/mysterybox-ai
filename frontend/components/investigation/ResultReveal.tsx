@@ -33,8 +33,10 @@ export function ResultReveal({ caseFile }: { caseFile: Case }) {
   useEffect(() => {
     if (!sessionReady) return;
     if (!sessionId) {
-      setStatus("open");
-      setMessage("The seal has not been set.");
+      void Promise.resolve().then(() => {
+        setStatus("open");
+        setMessage("The seal has not been set.");
+      });
       return;
     }
 

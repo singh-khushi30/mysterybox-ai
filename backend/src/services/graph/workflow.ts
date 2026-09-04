@@ -156,9 +156,9 @@ async function loadAllowedKnowledge(query: string, caseId: string, suspectId: st
   }
 }
 
-async function loadDiscoveredEvidence(sessionId: string, caseId: string) {
+async function loadDiscoveredEvidence(sessionId: string, caseId: string, userId?: string) {
   try {
-    return await listSessionEvidence(sessionId);
+    return await listSessionEvidence(sessionId, userId);
   } catch {
     const catalog = await listPublicEvidenceForCase(caseId);
     return catalog.filter((item) => item.discovered_by_default);
@@ -210,7 +210,7 @@ async function retrieveNode(state: GraphStateType) {
 async function loadMemoryNode(state: GraphStateType) {
   const [history, evidence, timeline, suspects] = await Promise.all([
     loadRecentMessages(state.sessionId, state.suspectId),
-    loadDiscoveredEvidence(state.sessionId, state.caseId),
+    loadDiscoveredEvidence(state.sessionId, state.caseId, state.userId),
     listVisibleTimeline(state.caseId),
     listSuspectsForCase(state.caseId),
   ]);

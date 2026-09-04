@@ -9,6 +9,7 @@ import { ApiError, getInterrogation, getSessionContradictions, interrogateSuspec
 import { toTranscriptLine } from "@/lib/investigation/interrogation";
 import type { ApiContradiction } from "@/types/api";
 import { suspicionLabel } from "@/lib/investigation";
+import { useAuth } from "@/lib/auth/context";
 import { useProgressCase } from "@/lib/investigation/progress-context";
 import { useInvestigationSession } from "@/lib/investigation/session-context";
 import type { Case, Suspect } from "@/types/investigation";
@@ -23,6 +24,8 @@ export function InterrogationDesk({
   suspect: Suspect;
 }) {
   const { sessionId, session, ready: sessionReady } = useInvestigationSession();
+  const { profile } = useAuth();
+  const detectiveName = profile?.displayName?.trim() || "Detective";
   const [lines, setLines] = useState<TranscriptLine[]>([]);
   const [draft, setDraft] = useState("");
   const [waiting, setWaiting] = useState(false);
@@ -50,9 +53,11 @@ export function InterrogationDesk({
   useEffect(() => {
     if (!sessionReady) return;
     if (!sessionId) {
-      setOpening(false);
-      setStatus("No session");
-      setLines([]);
+      void Promise.resolve().then(() => {
+        setOpening(false);
+        setStatus("No session");
+        setLines([]);
+      });
       return;
     }
 
@@ -62,7 +67,7 @@ export function InterrogationDesk({
     Promise.all([getInterrogation(sessionId, suspect.id), getSessionContradictions(sessionId)])
       .then(([messages, found]) => {
         if (cancelled) return;
-        setLines(messages.map((message) => toTranscriptLine(message, suspect.name)));
+        setLines(messages.map((message) => toTranscriptLine(message, suspect.name, detectiveName)));
         setContradictions(found);
         setStatus(messages.length > 0 ? "On the record" : "The chair is empty");
         setOpening(false);
@@ -80,7 +85,7 @@ export function InterrogationDesk({
     return () => {
       cancelled = true;
     };
-  }, [sessionId, sessionReady, suspect.id, suspect.name]);
+  }, [detectiveName, sessionId, sessionReady, suspect.id, suspect.name]);
 
   function scrollLog() {
     window.requestAnimationFrame(() => {
@@ -92,7 +97,7 @@ export function InterrogationDesk({
     const line: TranscriptLine = {
       id: `${Date.now()}-${speaker}`,
       speaker,
-      name: speaker === "detective" ? "Det. Vale" : suspect.name,
+      name: speaker === "detective" ? detectiveName : suspect.name,
       time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       text,
     };
@@ -106,17 +111,17 @@ export function InterrogationDesk({
       const withoutLocal = current.filter((line) => line.id !== localDetectiveId);
       return [
         ...withoutLocal,
-        toTranscriptLine(turn.detective, suspect.name),
-        toTranscriptLine(turn.suspect, suspect.name),
+        toTranscriptLine(turn.detective, suspect.name, detectiveName),
+        toTranscriptLine(turn.suspect, suspect.name, detectiveName),
       ];
     });
     scrollLog();
   }
 
-  async function ask(message: string, evidenceId?: string) {
-    if (!sessionId || !canAsk) return;
+  async function ask(message: string, evidenceId?: string): Promise<string | null> {
+    if (!sessionId || !canAsk) return null;
     const question = message.trim();
-    if (!question) return;
+    if (!question) return null;
 
     const localId = appendLocal(
       "detective",
@@ -227,7 +232,7 @@ export function InterrogationDesk({
                 >
                   {line.name}
                 </p>
-                <p className="mt-1 font-serif leading-7 text-paper/90">{line.text}</p>
+                <p className="mt-1 font-serif leading-7 break-words text-paper/90">{line.text}</p>
               </div>
             </motion.div>
           ))}

@@ -12,7 +12,8 @@
     "test:interrogation": "tsx scripts/test-interrogation.ts",
     "test:graph": "tsx scripts/test-graph.ts",
     "test:accusation": "tsx scripts/test-accusation.ts",
-    "test:auth": "tsx scripts/test-auth.ts"
+    "test:auth": "tsx scripts/test-auth.ts",
+    "test:api": "tsx scripts/test-api.ts"
   },
   "dependencies": {
     "@google/genai": "^2.21.0",

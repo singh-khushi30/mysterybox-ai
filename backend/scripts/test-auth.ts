@@ -1,6 +1,20 @@
+import { createClient } from "@supabase/supabase-js";
+import WebSocket from "ws";
 import { supabase } from "../src/config/supabase.ts";
 import { getSession } from "../src/services/sessions.ts";
 import { HttpError } from "../src/utils/http.ts";
+
+function passwordClient() {
+  const url = process.env.SUPABASE_URL?.trim();
+  const key = process.env.SUPABASE_PUBLISHABLE_KEY?.trim();
+  if (!url || !key) {
+    throw new Error("Missing SUPABASE_URL or SUPABASE_PUBLISHABLE_KEY.");
+  }
+  return createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    realtime: { transport: WebSocket as never },
+  });
+}
 
 const CASE_ID = "a1000001-0001-4000-8000-000000000001";
 const API = `http://127.0.0.1:${process.env.PORT || 5050}`;
@@ -38,7 +52,7 @@ async function createTestUser(label: string) {
   if (created.error || !created.data.user) {
     throw new Error(`Unable to create test user ${label}.`);
   }
-  const signed = await supabase.auth.signInWithPassword({ email, password });
+  const signed = await passwordClient().auth.signInWithPassword({ email, password });
   if (signed.error || !signed.data.session) {
     throw new Error(`Unable to sign in test user ${label}.`);
   }

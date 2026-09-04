@@ -3,10 +3,12 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { discoverSessionEvidence, getSessionEvidence } from "@/lib/api";
 import { useInvestigationSession } from "@/lib/investigation/session-context";
+import type { ApiEvidence } from "@/types/api";
 import type { Case } from "@/types/investigation";
 
 type ProgressContextValue = {
   discoveredIds: string[];
+  discoveredItems: ApiEvidence[];
   ready: boolean;
   discoveringId: string | null;
   discover: (evidenceId: string) => Promise<boolean>;
@@ -14,6 +16,7 @@ type ProgressContextValue = {
 
 const ProgressContext = createContext<ProgressContextValue>({
   discoveredIds: [],
+  discoveredItems: [],
   ready: false,
   discoveringId: null,
   discover: async () => false,
@@ -21,26 +24,32 @@ const ProgressContext = createContext<ProgressContextValue>({
 
 export function InvestigationProgressProvider({ children }: { children: ReactNode }) {
   const { sessionId, ready: sessionReady } = useInvestigationSession();
-  const [discoveredIds, setDiscoveredIds] = useState<string[]>([]);
+  const [discovered, setDiscovered] = useState<ApiEvidence[]>([]);
   const [ready, setReady] = useState(false);
   const [discoveringId, setDiscoveringId] = useState<string | null>(null);
+  const discoveredIds = discovered.map((item) => item.id);
 
   useEffect(() => {
+    let cancelled = false;
     if (!sessionReady) return;
     if (!sessionId) {
-      setDiscoveredIds([]);
-      setReady(true);
-      return;
+      void Promise.resolve().then(() => {
+        if (cancelled) return;
+        setDiscovered([]);
+        setReady(true);
+      });
+      return () => {
+        cancelled = true;
+      };
     }
 
-    let cancelled = false;
     setReady(false);
     getSessionEvidence(sessionId)
       .then((items) => {
-        if (!cancelled) setDiscoveredIds(items.map((item) => item.id));
+        if (!cancelled) setDiscovered(items);
       })
       .catch(() => {
-        if (!cancelled) setDiscoveredIds([]);
+        if (!cancelled) setDiscovered([]);
       })
       .finally(() => {
         if (!cancelled) setReady(true);
@@ -57,9 +66,9 @@ export function InvestigationProgressProvider({ children }: { children: ReactNod
     }
     setDiscoveringId(evidenceId);
     try {
-      await discoverSessionEvidence(sessionId, evidenceId);
-      setDiscoveredIds((current) =>
-        current.includes(evidenceId) ? current : [...current, evidenceId]
+      const item = await discoverSessionEvidence(sessionId, evidenceId);
+      setDiscovered((current) =>
+        current.some((entry) => entry.id === item.id) ? current : [...current, item]
       );
       return true;
     } catch {
@@ -70,7 +79,9 @@ export function InvestigationProgressProvider({ children }: { children: ReactNod
   }
 
   return (
-    <ProgressContext.Provider value={{ discoveredIds, ready, discoveringId, discover }}>
+    <ProgressContext.Provider
+      value={{ discoveredIds, discoveredItems: discovered, ready, discoveringId, discover }}
+    >
       {children}
     </ProgressContext.Provider>
   );
@@ -81,15 +92,20 @@ export function useInvestigationProgress() {
 }
 
 export function useProgressCase(caseFile: Case): Case {
-  const { discoveredIds } = useInvestigationProgress();
+  const { discoveredIds, discoveredItems } = useInvestigationProgress();
   return useMemo(
     () => ({
       ...caseFile,
-      evidence: caseFile.evidence.map((item) => ({
-        ...item,
-        discovered: item.discovered || discoveredIds.includes(item.id),
-      })),
+      evidence: caseFile.evidence.map((item) => {
+        const live = discoveredItems.find((entry) => entry.id === item.id);
+        return {
+          ...item,
+          description: live?.description || item.description,
+          location: live?.location_found ?? item.location,
+          discovered: item.discovered || discoveredIds.includes(item.id),
+        };
+      }),
     }),
-    [caseFile, discoveredIds]
+    [caseFile, discoveredIds, discoveredItems]
   );
 }

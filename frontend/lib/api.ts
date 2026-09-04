@@ -90,10 +90,6 @@ export function getCasePublicEvidence(caseId: string) {
   return request<ApiEvidence[]>(`/api/cases/${caseId}/evidence/all`);
 }
 
-export function getEvidence(id: string) {
-  return request<ApiEvidence>(`/api/evidence/${id}`);
-}
-
 export function getCaseTimeline(caseId: string) {
   return request<ApiTimelineEvent[]>(`/api/cases/${caseId}/timeline`);
 }

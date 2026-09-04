@@ -6,7 +6,7 @@ import { HttpError, ok } from "../utils/http.js";
 import { parseId } from "../utils/ids.js";
 
 const notesSchema = z.object({
-  content: z.string(),
+  content: z.string().max(20000),
 });
 
 export async function getNotes(req: Request, res: Response) {

@@ -1,3 +1,4 @@
+import type { RetrievalHit } from "../rag/retrieve.js";
 import {
   MAX_REPAIR_ATTEMPTS,
   SAFE_FALLBACK,
@@ -10,7 +11,6 @@ export function nextValidationRoute(valid: boolean, repairCount: number) {
   if (repairCount >= MAX_REPAIR_ATTEMPTS) return "fallbackResponse";
   return "repairResponse";
 }
-import type { RetrievalHit } from "../rag/retrieve.js";
 
 const LEAK =
   /ground truth|official solution|isolde hart is the last guest|i killed|i murdered|i am the murderer|culprit id/i;

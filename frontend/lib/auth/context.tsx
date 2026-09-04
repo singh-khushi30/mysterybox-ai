@@ -63,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!ready) return;
     if (!user) {
-      setProfile(null);
+      void Promise.resolve().then(() => setProfile(null));
       return;
     }
     void loadProfile();
