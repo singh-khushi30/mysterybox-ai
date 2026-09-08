@@ -22,6 +22,23 @@ app.use(cors(allowedOrigins.length > 0 ? { origin: allowedOrigins } : undefined)
 app.use(morgan("dev"));
 app.use(express.json({ limit: "64kb" }));
 
+const VERCEL_BACKEND_PREFIX = "/api/backend";
+app.use((req, _res, next) => {
+  const url = req.url;
+  if (
+    url === VERCEL_BACKEND_PREFIX ||
+    url.startsWith(`${VERCEL_BACKEND_PREFIX}/`) ||
+    url.startsWith(`${VERCEL_BACKEND_PREFIX}?`)
+  ) {
+    const stripped = url.slice(VERCEL_BACKEND_PREFIX.length);
+    req.url = stripped.startsWith("/") || stripped.startsWith("?") ? stripped : `/${stripped}`;
+    if (req.url === "" || req.url.startsWith("?")) {
+      req.url = `/${req.url}`;
+    }
+  }
+  next();
+});
+
 app.get("/", (_req, res) => {
   res.json({
     success: true,

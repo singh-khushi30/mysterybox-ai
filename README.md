@@ -596,16 +596,29 @@ There is no published coverage percentage in this repository.
 
 ## 19. Deployment
 
-This repo does not record a live production URL.
+This repo does not record a live production URL. Root `vercel.json` defines two Vercel services: Next.js in `frontend/`, Express in `backend/`. Public API traffic is rewritten from `/api/backend` to the backend service; everything else goes to the frontend.
 
-A typical split:
+On Vercel, the frontend can call the API at `/api/backend` (same origin). Express still serves `/api/...` after that prefix is stripped. Local development is unchanged: set `NEXT_PUBLIC_API_URL` to the Express origin (for example `http://localhost:5050`).
 
-1. **Frontend** — Next.js on a Node/Vercel-style host. Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and `NEXT_PUBLIC_API_URL` to the public API origin.
-2. **Backend** — `npm run build` then `npm start` (`node dist/index.js`). Set `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `GEMINI_API_KEY`, `PORT`, and `FRONTEND_ORIGIN` to the real frontend origin (comma-separated if you have more than one).
-3. **Supabase** — apply migrations, enable Email auth, and add the production site to Auth redirect allowlists (`/login`, `/signup`, and any `?next=` paths you use).
-4. **CORS** — `FRONTEND_ORIGIN` must include the deployed frontend origin or the browser will not call the API.
+Configure these names in the Vercel project (no values belong in git):
 
-Do not ship the service role key or Gemini key to the frontend host.
+**Frontend service**
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+- `NEXT_PUBLIC_API_URL` — optional on Vercel (defaults to `/api/backend`); required locally
+
+**Backend service**
+
+- `SUPABASE_URL`
+- `SUPABASE_SECRET_KEY`
+- `GEMINI_API_KEY`
+- `FRONTEND_ORIGIN` — production frontend origin (comma-separated if more than one)
+- `PORT` — provided by Vercel for the web service
+
+Also in Supabase: apply migrations, enable Email auth, and add the production URL to Auth redirect allowlists (`/login`, `/signup`, and `?next=` paths).
+
+Do not ship the service role key or Gemini key to the frontend service.
 
 ---
 

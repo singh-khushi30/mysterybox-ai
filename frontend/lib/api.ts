@@ -26,12 +26,30 @@ export class ApiError extends Error {
   }
 }
 
+const VERCEL_BACKEND_PREFIX = "/api/backend";
+
 function apiBase() {
-  const base = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
-  if (!base) {
+  const configured = process.env.NEXT_PUBLIC_API_URL?.trim().replace(/\/$/, "");
+  if (configured && /^https?:\/\//i.test(configured)) {
+    return configured;
+  }
+
+  const prefix = configured?.startsWith("/") ? configured : VERCEL_BACKEND_PREFIX;
+
+  if (typeof window !== "undefined") {
+    return prefix;
+  }
+
+  const vercelHost = process.env.VERCEL_URL?.replace(/\/$/, "");
+  if (vercelHost) {
+    return `https://${vercelHost}${prefix}`;
+  }
+
+  if (!configured) {
     throw new ApiError("The archive address is not configured.", 500);
   }
-  return base;
+
+  return prefix;
 }
 
 type RequestOptions = RequestInit & { accessToken?: string | null };
