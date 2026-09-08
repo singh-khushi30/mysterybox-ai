@@ -46,12 +46,14 @@ function victimFromDescription(description: string) {
 }
 
 export function publicCaseId(item: ApiCase, routeHint?: string) {
-  if (routeHint) return routeHint;
+  if (routeHint && /^\d+$/.test(routeHint)) return routeHint.padStart(3, "0");
+  if (item.caseNumber) return String(item.caseNumber).padStart(3, "0");
   if (item.slug === "the-last-guest-at-blackwood-manor") return "001";
   return item.id;
 }
 
 function caseLabel(item: ApiCase, index: number) {
+  if (item.caseNumber) return String(item.caseNumber).padStart(3, "0");
   if (item.slug === "the-last-guest-at-blackwood-manor") return "001";
   return caseNumber(index);
 }
@@ -116,8 +118,11 @@ export function toCaseFile(
     backendId: item.id,
     number: caseLabel(item, index),
     title: item.title,
-    locked: false,
-    comingSoon: false,
+    locked: item.status === "locked",
+    comingSoon: item.status === "locked",
+    archiveStatus: item.status,
+    score: item.score,
+    completedAt: item.completedAt,
     difficulty: difficultyLabel(item.difficulty),
     duration: `${item.estimated_minutes} min`,
     suspectCount: suspects.length,

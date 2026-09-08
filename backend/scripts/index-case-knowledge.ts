@@ -10,6 +10,15 @@ async function resolveCaseId(input?: string) {
   if (value === "001" || value === BLACKWOOD_SLUG) {
     return BLACKWOOD_CASE_ID;
   }
+  if (value === "002" || value === "the-dead-frequency") {
+    return "a1000002-0002-4000-8000-000000000002";
+  }
+  if (value === "003" || value === "the-passenger-who-never-boarded") {
+    return "a1000003-0003-4000-8000-000000000003";
+  }
+  if (value === "all") {
+    return "all";
+  }
 
   const byId = await supabase.from("cases").select("id").eq("id", value).maybeSingle();
   if (byId.data?.id) {
@@ -40,12 +49,8 @@ async function assertReady() {
   }
 }
 
-async function main() {
-  await assertReady();
-
-  const caseId = await resolveCaseId(process.argv[2]);
+async function indexOne(caseId: string) {
   const result = await indexCaseKnowledge(caseId);
-
   console.log(`Indexed knowledge for ${result.title}`);
   console.log(`case_id: ${result.caseId}`);
   console.log(`chunks: ${result.indexed}`);
@@ -54,6 +59,24 @@ async function main() {
     "sources:",
     formatCounts(result.counts, ["case", "suspect", "evidence", "timeline", "ground_truth"])
   );
+  return result;
+}
+
+async function main() {
+  await assertReady();
+  const input = process.argv[2]?.trim();
+  if (input === "all") {
+    for (const id of [
+      BLACKWOOD_CASE_ID,
+      "a1000002-0002-4000-8000-000000000002",
+      "a1000003-0003-4000-8000-000000000003",
+    ]) {
+      await indexOne(id);
+      console.log("");
+    }
+    return;
+  }
+  await indexOne(await resolveCaseId(input));
 }
 
 function formatCounts(counts: Record<string, number>, keys: string[]) {

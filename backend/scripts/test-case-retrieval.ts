@@ -126,20 +126,21 @@ async function main() {
       },
     },
     {
-      title: "Public — timeline camera plate",
-      query: "When did the west hallway camera record a figure walking toward the conservatory?",
+      title: "Public — hallway figure and 11:05 maid",
+      query:
+        "Did the west hallway plate show a dinner dress, and was the 11:05 speaker a woman who was not Clara?",
       caseId: CASE_ID,
       suspectId: null,
       allowedVisibility: PUBLIC_RETRIEVAL_VISIBILITY,
       verify: (hits: RetrievalHit[]) => {
         const relevant =
-          hasSource(hits, "timeline", /west hallway|11:08|camera plate/i) ||
-          hasSource(hits, "evidence", /west hallway|11:08/i);
+          hasSource(hits, "timeline", /dinner|not Clara|11:08|11:05|west hallway/i) ||
+          hasSource(hits, "evidence", /dinner dress|11:08|west hallway/i);
         return {
-          passed: relevant && allSameCase(hits),
+          passed: relevant && allSameCase(hits) && !hasVisibility(hits, "GROUND_TRUTH"),
           detail: relevant
-            ? "Retrieved the west-hallway timeline or plate."
-            : "Did not retrieve the hallway camera fact.",
+            ? "Retrieved player-visible plate or 11:05 maid facts."
+            : "Did not retrieve the public hallway or maid facts.",
         };
       },
     },
@@ -202,7 +203,7 @@ async function main() {
           (hit) =>
             hit.suspect_id === ISOLDE_ID &&
             hit.visibility === KNOWLEDGE_VISIBILITY.SECRET &&
-            /gallery|11:06|woman who was not Clara|dinner dress/i.test(hit.content)
+            /gallery door was heard to close again before 11:06/i.test(hit.content)
         );
         return {
           passed: ownSecret && !hasVisibility(hits, "GROUND_TRUTH"),

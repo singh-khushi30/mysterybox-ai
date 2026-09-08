@@ -1,16 +1,23 @@
 import { supabase } from "../config/supabase.js";
 import { getPlayableCase } from "./cases.js";
 import { listPublicEvidenceForCase } from "./evidence.js";
+import { assertCaseUnlocked } from "./progression.js";
 import { HttpError } from "../utils/http.js";
 
 const SESSION_FIELDS = "id, case_id, user_id, status, started_at, completed_at, score";
 
 export async function createSession(caseId: string, userId: string) {
   await getPlayableCase(caseId);
+  await assertCaseUnlocked(caseId, userId);
 
   const existing = await findActiveSession(caseId, userId);
   if (existing) {
     return existing;
+  }
+
+  const completed = await findCompletedSession(caseId, userId);
+  if (completed) {
+    return completed;
   }
 
   const { data, error } = await supabase
@@ -40,6 +47,24 @@ export async function findActiveSession(caseId: string, userId: string) {
     .eq("user_id", userId)
     .eq("status", "in_progress")
     .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new HttpError(500, "Unable to load session");
+  }
+
+  return data;
+}
+
+export async function findCompletedSession(caseId: string, userId: string) {
+  const { data, error } = await supabase
+    .from("game_sessions")
+    .select(SESSION_FIELDS)
+    .eq("case_id", caseId)
+    .eq("user_id", userId)
+    .eq("status", "completed")
+    .order("completed_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 

@@ -336,6 +336,7 @@ function detectNode(state: GraphStateType) {
     contradiction: detectContradiction({
       statement: state.draft,
       suspectId: state.suspectId,
+      suspectName: state.identity?.name,
       facts: state.publicFacts,
     }),
   };

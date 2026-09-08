@@ -1,5 +1,6 @@
 import {
   claimsExclusiveStay,
+  extractLastSeenMinutes,
   extractLocationKeys,
   extractMinutes,
   fingerprintFor,
@@ -17,6 +18,8 @@ function placeLabel(key: string) {
       return "the east wing";
     case "gallery":
       return "the gallery";
+    case "conservatory":
+      return "the conservatory";
     default:
       return key.replaceAll("_", " ");
   }
@@ -30,14 +33,69 @@ function clockLabel(minutes: number) {
   return `${twelve}:${minute} ${suffix}`;
 }
 
+function laterConservatoryMovement(facts: PublicFact[]) {
+  return facts.filter((fact) => {
+    if (fact.kind !== "evidence" && fact.kind !== "timeline") return false;
+    if (fact.minutes === null || fact.minutes < 23 * 60) return false;
+    const towardGlasshouse =
+      fact.locationKeys.includes("conservatory") || fact.locationKeys.includes("west_hall");
+    const observable =
+      /figure|plate|dinner|conservatory|glasshouse|maid|speaker|woman/i.test(fact.text);
+    return towardGlasshouse && observable;
+  });
+}
+
+function detectLastSeenConflict(
+  statement: string,
+  facts: PublicFact[],
+  suspectName?: string
+): ContradictionHit {
+  const lastSeen = extractLastSeenMinutes(statement);
+  if (lastSeen === null || lastSeen >= 23 * 60) {
+    return emptyContradiction();
+  }
+
+  const later = laterConservatoryMovement(facts);
+  if (later.length === 0) {
+    return emptyContradiction();
+  }
+
+  const fact = later[0];
+  const who = suspectName?.split(" ")[0];
+  const explanation = who
+    ? `${who} claims she last saw Edmund around ${clockLabel(lastSeen)}, but evidence suggests someone matching her possible movement toward the conservatory shortly after 11 PM.`
+    : `This claim of last seeing Edmund around ${clockLabel(lastSeen)} conflicts with evidence of movement toward the conservatory shortly after 11 PM.`;
+  return {
+    detected: true,
+    explanation,
+    confidence: 0.84,
+    evidenceId: fact.evidenceId,
+    fingerprint: fingerprintFor([
+      suspectName,
+      "last-seen",
+      fact.kind,
+      fact.evidenceId,
+      String(lastSeen),
+    ]),
+    statement,
+    duplicate: false,
+  };
+}
+
 export function detectContradiction(input: {
   statement: string;
   suspectId: string;
+  suspectName?: string;
   facts: PublicFact[];
 }): ContradictionHit {
   const statement = input.statement.trim();
   if (!statement || /don't remember|do not remember|cannot say|i don't know|i do not know/i.test(statement)) {
     return emptyContradiction();
+  }
+
+  const lastSeen = detectLastSeenConflict(statement, input.facts, input.suspectName);
+  if (lastSeen.detected) {
+    return lastSeen;
   }
 
   const claimedPlaces = extractLocationKeys(statement);

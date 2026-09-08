@@ -240,6 +240,11 @@
   filter: drop-shadow(0 1px 0 rgb(0 0 0 / 35%));
 }
 
+.evidence-flow .react-flow__edgelabel-renderer {
+  overflow: visible;
+  z-index: 5;
+}
+
 .evidence-flow .react-flow__attribution {
   display: none;
 }

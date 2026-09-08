@@ -32,8 +32,12 @@ export function CaseDossier({ caseFile }: { caseFile: CaseFile }) {
     setStarting(true);
     setStartError(null);
     try {
-      await startInvestigationSession(caseFile.id, caseFile.backendId, user.id);
-      router.push(`/cases/${caseFile.id}/investigate`);
+      const session = await startInvestigationSession(caseFile.id, caseFile.backendId, user.id);
+      router.push(
+        session.status === "completed"
+          ? `/cases/${caseFile.id}/investigate/result`
+          : `/cases/${caseFile.id}/investigate`
+      );
     } catch (error) {
       setStartError(
         error instanceof ApiError
@@ -68,7 +72,7 @@ export function CaseDossier({ caseFile }: { caseFile: CaseFile }) {
           Case #{caseFile.number}
         </p>
         <h1 className="mt-4 font-display text-5xl text-paper">{caseFile.title}</h1>
-        <p className="mt-4 text-beige/60">This file is sealed. Coming soon.</p>
+        <p className="mt-4 text-beige/60">Complete the previous case to unlock this file.</p>
         <Link
           href="/cases"
           className="mt-8 font-mono text-[0.68rem] tracking-[0.24em] text-brass uppercase"

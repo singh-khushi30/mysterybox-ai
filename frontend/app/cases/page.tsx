@@ -1,5 +1,4 @@
 import { CaseLibrary } from "@/components/case/CaseLibrary";
-import { comingSoonCases } from "@/lib/cases";
 import { loadPlayableCases } from "@/lib/investigation/load";
 
 export default async function CasesPage() {
@@ -8,8 +7,7 @@ export default async function CasesPage() {
   if (result.status !== "ok") {
     return (
       <CaseLibrary
-        playable={[]}
-        locked={comingSoonCases}
+        files={[]}
         notice={
           <p className="mt-6 max-w-xl font-display text-lg text-beige/55 italic">
             {result.status === "error"
@@ -21,5 +19,5 @@ export default async function CasesPage() {
     );
   }
 
-  return <CaseLibrary playable={result.data} locked={comingSoonCases} />;
+  return <CaseLibrary files={result.data} />;
 }

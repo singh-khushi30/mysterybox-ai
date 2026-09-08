@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -17,14 +18,20 @@ export function DetectiveProfile() {
 }
 
 function ProfileDesk() {
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, refreshProfile } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    void refreshProfile();
+  }, [refreshProfile]);
+
   const name = profile?.displayName ?? "Detective";
   const rank = profile?.detectiveRank ?? "Rookie Detective";
   const stats = profile?.stats;
   const current = stats?.currentInvestigation;
+  const solved = stats?.recentlySolved ?? [];
   const deskHref = current
-    ? `/cases/${current.slug === "the-last-guest-at-blackwood-manor" ? "001" : current.slug}/investigate`
+    ? `/cases/${current.caseNumber ? String(current.caseNumber).padStart(3, "0") : current.slug === "the-last-guest-at-blackwood-manor" ? "001" : current.slug}/investigate`
     : "/cases";
 
   return (
@@ -61,7 +68,14 @@ function ProfileDesk() {
         </div>
 
         <section className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Stat label="Completed cases" value={String(stats?.completedCases ?? 0)} />
+          <Stat
+            label="Completed cases"
+            value={
+              stats
+                ? `${stats.completedCases} / ${stats.totalCases || stats.completedCases}`
+                : "0 / 0"
+            }
+          />
           <Stat label="Accuracy" value={`${stats?.accuracy ?? 0}%`} />
           <Stat label="Average score" value={String(stats?.averageScore ?? 0)} />
           <Stat label="Detective rank" value={rank} />
@@ -73,6 +87,15 @@ function ProfileDesk() {
           </h2>
           <p className="mt-2 font-display text-2xl">
             {current?.title ?? "No file is open on the desk."}
+          </p>
+          <p className="mt-2 text-sm leading-6">
+            {current
+              ? "An investigation is still in progress."
+              : (stats?.completedCases ?? 0) >= (stats?.totalCases ?? 0) && (stats?.totalCases ?? 0) > 0
+                ? "The cabinet is closed. Every seal on the archive is yours."
+                : solved.length > 0
+                  ? "The last file is closed. The next unlocked case is on the archive."
+                  : "The cabinet is waiting for a first seal."}
           </p>
           <Link
             href={deskHref}
@@ -88,26 +111,29 @@ function ProfileDesk() {
               Recently solved
             </h2>
             <ul className="mt-4 space-y-3">
-              {(stats?.recentlySolved ?? []).map((item, index) => (
+              {solved.map((item, index) => (
                 <motion.li
                   key={item.id}
                   initial={{ opacity: 0, x: -8 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.08 }}
-                  className="flex items-baseline justify-between border-b border-brass/15 pb-3"
+                  className="flex items-baseline justify-between gap-4 border-b border-brass/15 pb-3"
                 >
                   <span>
                     <span className="font-display text-xl text-paper">{item.title}</span>
-                    {item.year && (
-                      <span className="ml-2 font-mono text-[0.58rem] text-beige/40">
-                        {item.year}
-                      </span>
-                    )}
+                    <span className="mt-1 block font-mono text-[0.58rem] tracking-[0.12em] text-beige/40 uppercase">
+                      {item.correct ? "Correct" : "Missed"}
+                      {item.completedAt
+                        ? ` · ${new Date(item.completedAt).toLocaleDateString()}`
+                        : item.year
+                          ? ` · ${item.year}`
+                          : ""}
+                    </span>
                   </span>
                   <span className="font-mono text-sm text-brass">{item.score}</span>
                 </motion.li>
               ))}
-              {(stats?.recentlySolved.length ?? 0) === 0 && (
+              {solved.length === 0 && (
                 <li className="text-sm text-beige/45">No seals have been set yet.</li>
               )}
             </ul>

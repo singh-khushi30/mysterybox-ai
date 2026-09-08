@@ -6,11 +6,13 @@ import { motion } from "framer-motion";
 import { Portrait } from "@/components/shared/Portrait";
 import { getInvestigationStats } from "@/lib/investigation";
 import { useProgressCase } from "@/lib/investigation/progress-context";
+import { useInvestigationSession } from "@/lib/investigation/session-context";
 import type { Case } from "@/types/investigation";
 
 export function OverviewDesk({ caseFile }: { caseFile: Case }) {
   const liveCase = useProgressCase(caseFile);
-  const stats = getInvestigationStats(liveCase);
+  const { session } = useInvestigationSession();
+  const stats = getInvestigationStats(liveCase, { sessionStatus: session?.status });
   const discovered = liveCase.evidence.filter((item) => item.discovered).slice(0, 4);
 
   return (

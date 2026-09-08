@@ -1,7 +1,42 @@
-import { ApiError, createSession, getSession } from "@/lib/api";
+import { ApiError, createSession, getProfile, getSession } from "@/lib/api";
 import type { ApiSession } from "@/types/api";
 
 const LEGACY_ACTIVE_KEY = "mysterybox.activeSession";
+const ACTIVE_USER_KEY = "mysterybox.auth.activeUser";
+
+export function boardStorageKey(userId: string, caseId: string) {
+  return `mysterybox.board.${userId}.${caseId}`;
+}
+
+export function flowStorageKey(userId: string, caseId: string) {
+  return `mysterybox.flow.${userId}.${caseId}`;
+}
+
+export function accusationStorageKey(userId: string, caseId: string) {
+  return `mysterybox.accusation.${userId}.${caseId}`;
+}
+
+function storageKeys(storage: Storage) {
+  const keys: string[] = [];
+  for (let i = 0; i < storage.length; i += 1) {
+    const key = storage.key(i);
+    if (key) keys.push(key);
+  }
+  return keys;
+}
+
+function removeMatching(storage: Storage, match: (key: string) => boolean) {
+  for (const key of storageKeys(storage)) {
+    if (match(key)) storage.removeItem(key);
+  }
+}
+
+function isLegacyDeskKey(key: string) {
+  return (
+    key === LEGACY_ACTIVE_KEY ||
+    /^mysterybox\.(board|flow|accusation)\.[^.]+$/.test(key)
+  );
+}
 
 export type StoredSession = {
   sessionId: string;
@@ -53,21 +88,41 @@ export function writeStoredSession(session: StoredSession) {
   window.localStorage.setItem(activeKey(session.userId), payload);
 }
 
+export function sweepSharedDeskKeys() {
+  if (typeof window === "undefined") return;
+  removeMatching(window.localStorage, isLegacyDeskKey);
+  removeMatching(window.sessionStorage, isLegacyDeskKey);
+}
+
+export function adoptUserDesk(userId: string) {
+  if (typeof window === "undefined") return;
+  sweepSharedDeskKeys();
+  const previous = window.localStorage.getItem(ACTIVE_USER_KEY);
+  if (previous && previous !== userId) {
+    clearUserSessionKeys(previous);
+  }
+  window.localStorage.setItem(ACTIVE_USER_KEY, userId);
+}
+
 export function clearUserSessionKeys(userId?: string | null) {
   if (typeof window === "undefined") return;
-  window.localStorage.removeItem(LEGACY_ACTIVE_KEY);
-  if (!userId) return;
-  const prefix = `mysterybox.session.${userId}.`;
-  const active = activeKey(userId);
-  const keys: string[] = [];
-  for (let i = 0; i < window.localStorage.length; i += 1) {
-    const key = window.localStorage.key(i);
-    if (key && (key === active || key.startsWith(prefix))) {
-      keys.push(key);
-    }
+  sweepSharedDeskKeys();
+  if (!userId) {
+    window.localStorage.removeItem(ACTIVE_USER_KEY);
+    return;
   }
-  for (const key of keys) {
-    window.localStorage.removeItem(key);
+  const prefixes = [
+    `mysterybox.session.${userId}.`,
+    `mysterybox.board.${userId}.`,
+    `mysterybox.flow.${userId}.`,
+    `mysterybox.accusation.${userId}.`,
+    `mysterybox.auth.issuedAt.${userId}`,
+  ];
+  const active = activeKey(userId);
+  removeMatching(window.localStorage, (key) => key === active || prefixes.some((prefix) => key.startsWith(prefix)));
+  removeMatching(window.sessionStorage, (key) => prefixes.some((prefix) => key.startsWith(prefix)));
+  if (window.localStorage.getItem(ACTIVE_USER_KEY) === userId) {
+    window.localStorage.removeItem(ACTIVE_USER_KEY);
   }
 }
 
@@ -117,14 +172,50 @@ export async function validateStoredSession(
   }
 }
 
+async function resumeFromProfile(routeId: string, caseId: string, userId: string) {
+  try {
+    const profile = await getProfile();
+    const current = profile.stats.currentInvestigation;
+    if (current?.caseId === caseId) {
+      const session = await getSession(current.sessionId);
+      writeStoredSession({
+        sessionId: session.id,
+        caseId: session.case_id,
+        routeId,
+        userId,
+      });
+      return session;
+    }
+    const closed = profile.stats.recentlySolved.find((item) => item.caseId === caseId);
+    if (closed) {
+      const session = await getSession(closed.id);
+      writeStoredSession({
+        sessionId: session.id,
+        caseId: session.case_id,
+        routeId,
+        userId,
+      });
+      return session;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 export async function startInvestigationSession(
   routeId: string,
   caseId: string,
   userId: string
 ) {
   const existing = await validateStoredSession(routeId, caseId, userId);
-  if (existing?.status === "in_progress") {
+  if (existing?.status === "in_progress" || existing?.status === "completed") {
     return existing;
+  }
+
+  const resumed = await resumeFromProfile(routeId, caseId, userId);
+  if (resumed) {
+    return resumed;
   }
 
   const session = await createSession(caseId);

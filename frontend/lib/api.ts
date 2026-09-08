@@ -34,17 +34,20 @@ function apiBase() {
   return base;
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = await getAccessToken();
+type RequestOptions = RequestInit & { accessToken?: string | null };
+
+async function request<T>(path: string, init?: RequestOptions): Promise<T> {
+  const { accessToken, ...rest } = init ?? {};
+  const token = accessToken !== undefined ? accessToken : await getAccessToken();
   let response: Response;
   try {
     response = await fetch(`${apiBase()}${path}`, {
       cache: "no-store",
-      ...init,
+      ...rest,
       headers: {
-        ...(init?.body ? { "Content-Type": "application/json" } : {}),
+        ...(rest.body ? { "Content-Type": "application/json" } : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...init?.headers,
+        ...rest.headers,
       },
     });
   } catch {
@@ -66,32 +69,32 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return payload.data;
 }
 
-export function getCases() {
-  return request<ApiCase[]>("/api/cases");
+export function getCases(accessToken?: string | null) {
+  return request<ApiCase[]>("/api/cases", { accessToken });
 }
 
-export function getCase(id: string) {
-  return request<ApiCase>(`/api/cases/${id}`);
+export function getCase(id: string, accessToken?: string | null) {
+  return request<ApiCase>(`/api/cases/${id}`, { accessToken });
 }
 
-export function getCaseSuspects(caseId: string) {
-  return request<ApiSuspect[]>(`/api/cases/${caseId}/suspects`);
+export function getCaseSuspects(caseId: string, accessToken?: string | null) {
+  return request<ApiSuspect[]>(`/api/cases/${caseId}/suspects`, { accessToken });
 }
 
-export function getSuspect(id: string) {
-  return request<ApiSuspect>(`/api/suspects/${id}`);
+export function getSuspect(id: string, accessToken?: string | null) {
+  return request<ApiSuspect>(`/api/suspects/${id}`, { accessToken });
 }
 
-export function getCaseEvidence(caseId: string) {
-  return request<ApiEvidence[]>(`/api/cases/${caseId}/evidence`);
+export function getCaseEvidence(caseId: string, accessToken?: string | null) {
+  return request<ApiEvidence[]>(`/api/cases/${caseId}/evidence`, { accessToken });
 }
 
-export function getCasePublicEvidence(caseId: string) {
-  return request<ApiEvidence[]>(`/api/cases/${caseId}/evidence/all`);
+export function getCasePublicEvidence(caseId: string, accessToken?: string | null) {
+  return request<ApiEvidence[]>(`/api/cases/${caseId}/evidence/all`, { accessToken });
 }
 
-export function getCaseTimeline(caseId: string) {
-  return request<ApiTimelineEvent[]>(`/api/cases/${caseId}/timeline`);
+export function getCaseTimeline(caseId: string, accessToken?: string | null) {
+  return request<ApiTimelineEvent[]>(`/api/cases/${caseId}/timeline`, { accessToken });
 }
 
 export function createSession(caseId: string) {
@@ -197,21 +200,18 @@ export function getSessionResult(sessionId: string) {
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-export async function resolveCaseId(idOrSlug: string) {
+export async function resolveCaseId(idOrSlug: string, accessToken?: string | null) {
   if (uuidPattern.test(idOrSlug)) {
     return idOrSlug;
   }
 
-  const cases = await getCases();
+  const cases = await getCases(accessToken);
   const bySlug = cases.find((item) => item.slug === idOrSlug);
   if (bySlug) return bySlug.id;
 
-  if (idOrSlug === "001") {
-    return (
-      cases.find((item) => item.slug === "the-last-guest-at-blackwood-manor")?.id ??
-      cases[0]?.id ??
-      null
-    );
+  const numbered = Number(idOrSlug);
+  if (Number.isInteger(numbered) && numbered > 0) {
+    return cases.find((item) => item.caseNumber === numbered)?.id ?? null;
   }
 
   return null;

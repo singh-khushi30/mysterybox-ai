@@ -1,13 +1,17 @@
 import type { Case } from "@/types/investigation";
 
-export function getInvestigationStats(caseFile: Case) {
+export function getInvestigationStats(
+  caseFile: Case,
+  options?: { sessionStatus?: string | null }
+) {
   const discovered = caseFile.evidence.filter((item) => item.discovered).length;
   const questioned = caseFile.suspects.filter((suspect) => suspect.questioned).length;
   const evidenceTotal = Math.max(caseFile.evidence.length, 1);
   const suspectTotal = Math.max(caseFile.suspects.length, 1);
-  const progress = Math.round(
-    (discovered / evidenceTotal) * 60 + (questioned / suspectTotal) * 40
-  );
+  const progress =
+    options?.sessionStatus === "completed"
+      ? 100
+      : Math.round((discovered / evidenceTotal) * 60 + (questioned / suspectTotal) * 40);
 
   return {
     discovered,

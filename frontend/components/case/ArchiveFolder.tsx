@@ -35,11 +35,14 @@ export function ArchiveFolder({ caseFile, featured = false }: ArchiveFolderProps
       </div>
 
       {caseFile.locked ? (
-        <div className="absolute inset-x-6 bottom-6 flex items-center justify-between text-[#f3eadc]">
+        <div className="absolute inset-x-6 bottom-6 text-[#f3eadc]">
           <span className="inline-flex items-center gap-2 font-mono text-[0.62rem] tracking-[0.24em] uppercase">
             <Lock className="size-3.5" />
-            Coming Soon
+            Locked
           </span>
+          <p className="mt-2 font-mono text-[0.58rem] tracking-[0.12em] text-paper/70 uppercase">
+            Complete the previous case to unlock.
+          </p>
         </div>
       ) : (
         <div className="absolute inset-x-6 bottom-6 text-[#f3eadc]">
@@ -62,7 +65,14 @@ export function ArchiveFolder({ caseFile, featured = false }: ArchiveFolderProps
             </div>
           </dl>
           <p className="mt-6 font-display text-xl tracking-[0.2em] text-brass uppercase">
-            Open Case
+            {caseFile.archiveStatus === "completed"
+              ? "Completed"
+              : caseFile.archiveStatus === "in_progress"
+                ? "Continue"
+                : "Open Case"}
+            {caseFile.archiveStatus === "completed" && caseFile.score != null
+              ? ` · ${caseFile.score}`
+              : ""}
           </p>
         </div>
       )}

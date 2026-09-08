@@ -39,3 +39,30 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
   };
   next();
 }
+
+export function getOptionalUser(req: Request): AuthUser | null {
+  return (req as AuthedRequest).authUser ?? null;
+}
+
+export async function optionalAuth(req: Request, _res: Response, next: NextFunction) {
+  const header = req.headers.authorization;
+  if (!header || !header.startsWith("Bearer ")) {
+    next();
+    return;
+  }
+
+  const token = header.slice("Bearer ".length).trim();
+  if (!token) {
+    next();
+    return;
+  }
+
+  const { data } = await supabase.auth.getUser(token);
+  if (data.user) {
+    (req as AuthedRequest).authUser = {
+      id: data.user.id,
+      email: data.user.email ?? null,
+    };
+  }
+  next();
+}

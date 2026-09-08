@@ -8,7 +8,23 @@ import {
   type EdgeProps,
 } from "@xyflow/react";
 import type { BoardEdge } from "@/lib/investigation/board";
-import { nextRelation } from "@/lib/investigation/board";
+import { nextRelation, relationMark } from "@/lib/investigation/board";
+
+function labelOffset(id: string, sourceX: number, sourceY: number, targetX: number, targetY: number) {
+  let hash = 0;
+  for (let i = 0; i < id.length; i += 1) {
+    hash = (hash + id.charCodeAt(i) * (i + 1)) % 97;
+  }
+  const along = 0.36 + (hash % 5) * 0.07;
+  const side = (hash % 2 === 0 ? 1 : -1) * (10 + (hash % 3) * 6);
+  const dx = targetX - sourceX;
+  const dy = targetY - sourceY;
+  const length = Math.hypot(dx, dy) || 1;
+  return {
+    x: sourceX + dx * along + (-dy / length) * side,
+    y: sourceY + dy * along + (dx / length) * side,
+  };
+}
 
 export function LabeledEdge({
   id,
@@ -24,7 +40,7 @@ export function LabeledEdge({
   style,
 }: EdgeProps<BoardEdge>) {
   const { setEdges } = useReactFlow();
-  const [edgePath, labelX, labelY] = getBezierPath({
+  const [edgePath] = getBezierPath({
     sourceX,
     sourceY,
     targetX,
@@ -33,6 +49,8 @@ export function LabeledEdge({
     targetPosition,
   });
   const relation = data?.relation ?? "Related";
+  const mark = relationMark(relation);
+  const label = labelOffset(id, sourceX, sourceY, targetX, targetY);
 
   return (
     <>
@@ -48,11 +66,14 @@ export function LabeledEdge({
       />
       <EdgeLabelRenderer>
         <div
-          className="nodrag nopan pointer-events-auto absolute flex -translate-x-1/2 -translate-y-1/2 items-center gap-1"
-          style={{ transform: `translate(${labelX}px, ${labelY}px)` }}
+          className="nodrag nopan group pointer-events-auto absolute z-10"
+          style={{
+            transform: `translate(-50%, -50%) translate(${label.x}px, ${label.y}px)`,
+          }}
         >
           <button
             type="button"
+            title={relation}
             onClick={(event) => {
               event.stopPropagation();
               const next = nextRelation(relation);
@@ -64,10 +85,10 @@ export function LabeledEdge({
                 )
               );
             }}
-            className="border border-brass/40 bg-[#14110e]/95 px-2 py-0.5 font-mono text-[0.52rem] tracking-[0.16em] text-brass uppercase shadow-[0_4px_12px_rgb(0_0_0/40%)] hover:border-brass hover:text-paper"
+            className="flex size-6 items-center justify-center bg-burgundy font-mono text-[0.68rem] leading-none text-paper uppercase shadow-[0_2px_8px_rgb(0_0_0/45%)] hover:bg-[#7a3340]"
             aria-label={`Thread: ${relation}. Click to change relation.`}
           >
-            {relation}
+            {mark}
           </button>
           <button
             type="button"
@@ -75,7 +96,7 @@ export function LabeledEdge({
               event.stopPropagation();
               setEdges((edges) => edges.filter((edge) => edge.id !== id));
             }}
-            className="flex size-5 items-center justify-center border border-burgundy/40 bg-burgundy/80 font-mono text-[0.62rem] text-paper hover:bg-burgundy"
+            className="absolute -top-2 -right-2 hidden size-4 items-center justify-center bg-charcoal font-mono text-[0.62rem] leading-none text-paper group-hover:flex group-focus-within:flex hover:bg-burgundy"
             aria-label="Cut this thread"
           >
             ×

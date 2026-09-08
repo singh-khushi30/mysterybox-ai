@@ -5,6 +5,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Lock } from "lucide-react";
 import { EvidenceModal } from "@/components/evidence/EvidenceModal";
 import { evidenceKindLabel } from "@/lib/investigation";
+import { useAuth } from "@/lib/auth/context";
+import { boardStorageKey } from "@/lib/investigation/session";
 import { useInvestigationProgress, useProgressCase } from "@/lib/investigation/progress-context";
 import type { Case, Evidence, EvidenceKind } from "@/types/investigation";
 import { cn } from "@/lib/utils";
@@ -22,7 +24,8 @@ export function EvidenceGrid({ caseFile }: { caseFile: Case }) {
   const liveCase = useProgressCase(caseFile);
   const { discover, discoveringId } = useInvestigationProgress();
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const boardIds = useBoardIds(liveCase.id);
+  const { user } = useAuth();
+  const boardIds = useBoardIds(liveCase.id, user?.id);
   const selected = liveCase.evidence.find((item) => item.id === selectedId);
 
   const grouped = useMemo(() => {
@@ -164,11 +167,11 @@ function surfaceClass(kind: EvidenceKind, discovered: boolean) {
   }
 }
 
-function useBoardIds(caseId: string) {
-  const key = `mysterybox.board.${caseId}`;
+function useBoardIds(caseId: string, userId?: string | null) {
+  const key = userId ? boardStorageKey(userId, caseId) : "";
   const raw = useSyncExternalStore(
     subscribeBoard,
-    () => window.localStorage.getItem(key) ?? "[]",
+    () => (key ? window.localStorage.getItem(key) ?? "[]" : "[]"),
     () => "[]"
   );
   const ids = (() => {
@@ -182,6 +185,7 @@ function useBoardIds(caseId: string) {
   return {
     ids,
     pin(id: string) {
+      if (!key) return;
       const next = ids.includes(id) ? ids : [...ids, id];
       window.localStorage.setItem(key, JSON.stringify(next));
       window.dispatchEvent(new Event("mysterybox-board"));

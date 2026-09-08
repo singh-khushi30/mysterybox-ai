@@ -1,4 +1,5 @@
 import { supabase } from "../config/supabase.js";
+import { CASE_CATALOG, publishedCaseCount } from "./progression.js";
 import { rankFromScore } from "./scoring.js";
 import { HttpError } from "../utils/http.js";
 
@@ -104,35 +105,53 @@ export async function loadProfileStats(userId: string) {
       : Math.round(scored.reduce((sum, row) => sum + row.score, 0) / scored.length);
 
   const sessionIds = completed.map((row) => row.id);
-  let correct = 0;
-  let judged = 0;
+  const correctBySession = new Map<string, boolean>();
   if (sessionIds.length > 0) {
     const accusations = await supabase
       .from("accusations")
       .select("session_id, culprit_correct")
       .in("session_id", sessionIds);
     if (!accusations.error) {
-      judged = accusations.data?.length ?? 0;
-      correct = (accusations.data ?? []).filter((row) => row.culprit_correct).length;
+      for (const row of accusations.data ?? []) {
+        correctBySession.set(row.session_id, row.culprit_correct);
+      }
     }
   }
+  const correct = completed.filter((row) => correctBySession.get(row.id) === true).length;
 
   const caseIds = [...new Set(rows.map((row) => row.case_id))];
-  const cases =
-    caseIds.length === 0
-      ? []
-      : (
-          await supabase.from("cases").select("id, title, slug").in("id", caseIds)
-        ).data ?? [];
-  const caseById = new Map(cases.map((item) => [item.id, item]));
+  let cases: Array<{ id: string; title: string; slug: string; case_number?: number | null }> = [];
+  if (caseIds.length > 0) {
+    const withNumber = await supabase
+      .from("cases")
+      .select("id, title, slug, case_number")
+      .in("id", caseIds);
+    if (withNumber.error) {
+      const legacy = await supabase.from("cases").select("id, title, slug").in("id", caseIds);
+      cases = legacy.data ?? [];
+    } else {
+      cases = withNumber.data ?? [];
+    }
+  }
+  const caseById = new Map(
+    cases.map((item) => [
+      item.id,
+      {
+        ...item,
+        case_number: item.case_number ?? CASE_CATALOG[item.id]?.caseNumber ?? null,
+      },
+    ])
+  );
+  const totalCases = await publishedCaseCount();
 
   const current = rows.find((row) => row.status === "in_progress");
   const currentCase = current ? caseById.get(current.case_id) : null;
 
   return {
     completedCases: completed.length,
+    totalCases,
     averageScore,
-    accuracy: judged === 0 ? 0 : Math.round((correct / judged) * 100),
+    accuracy: completed.length === 0 ? 0 : Math.round((correct / completed.length) * 100),
     currentInvestigation:
       current && currentCase
         ? {
@@ -140,14 +159,25 @@ export async function loadProfileStats(userId: string) {
             caseId: current.case_id,
             title: currentCase.title,
             slug: currentCase.slug,
+            caseNumber: currentCase.case_number ?? null,
           }
         : null,
-    recentlySolved: completed.slice(0, 3).map((row) => ({
-      id: row.id,
-      title: caseById.get(row.case_id)?.title ?? "Closed case",
-      year: row.completed_at ? String(new Date(row.completed_at).getUTCFullYear()) : "",
-      score: row.score ?? 0,
-    })),
+    recentlySolved: [...completed]
+      .sort((left, right) => {
+        const leftAt = left.completed_at ? Date.parse(left.completed_at) : 0;
+        const rightAt = right.completed_at ? Date.parse(right.completed_at) : 0;
+        return rightAt - leftAt;
+      })
+      .slice(0, 3)
+      .map((row) => ({
+        id: row.id,
+        caseId: row.case_id,
+        title: caseById.get(row.case_id)?.title ?? "Closed case",
+        year: row.completed_at ? String(new Date(row.completed_at).getUTCFullYear()) : "",
+        completedAt: row.completed_at,
+        score: row.score ?? 0,
+        correct: correctBySession.get(row.id) === true,
+      })),
   };
 }
 

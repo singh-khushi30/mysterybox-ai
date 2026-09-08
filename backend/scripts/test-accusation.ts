@@ -17,6 +17,7 @@ const EVIDENCE = {
   photograph: "a1000001-0001-4000-8000-000000000104",
   coupe: "a1000001-0001-4000-8000-000000000106",
   letter: "a1000001-0001-4000-8000-000000000107",
+  glove: "a1000001-0001-4000-8000-000000000108",
   soil: "a1000001-0001-4000-8000-000000000111",
   guestbook: "a1000001-0001-4000-8000-000000000112",
   prints: "a1000001-0001-4000-8000-000000000114",
@@ -24,6 +25,7 @@ const EVIDENCE = {
 
 const STRONG_EVIDENCE = [
   EVIDENCE.phone,
+  EVIDENCE.cctv,
   EVIDENCE.coupe,
   EVIDENCE.letter,
   EVIDENCE.soil,
@@ -31,7 +33,7 @@ const STRONG_EVIDENCE = [
 ];
 
 const STRONG_REASONING =
-  "Isolde came for the unsigned letter Edmund would not surrender. She used the cracked champagne coupe in the conservatory at 11:17. Soil on a hem and blotter prints mark the glasshouse, not the pantry hour.";
+  "Isolde came for the unsigned letter Edmund would not surrender. She used the cracked champagne coupe in the conservatory at 11:17. The west plate, soil on a hem, and blotter prints mark the glasshouse, not the pantry hour.";
 
 function check(title: string, passed: boolean, detail: string) {
   console.log(`  ${passed ? "PASS" : "FAIL"}  ${title}${detail ? ` — ${detail}` : ""}`);
@@ -325,8 +327,8 @@ async function main() {
     suspectId: ISOLDE_ID,
     motive: "A letter Edmund refused to return",
     method: "Broken champagne coupe",
-    evidenceIds: [EVIDENCE.cctv, EVIDENCE.receipt],
-    reasoning: "The west plate and cellar receipt are enough to name her.",
+    evidenceIds: [EVIDENCE.glove, EVIDENCE.receipt],
+    reasoning: "The staff glove and cellar receipt are enough to name her.",
   });
   checks.push(
     check(

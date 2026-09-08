@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ApiError, getSessionResult } from "@/lib/api";
+import { useAuth } from "@/lib/auth/context";
+import { accusationStorageKey } from "@/lib/investigation/session";
 import { loadAccusation } from "@/lib/investigation/solve";
 import { useInvestigationSession } from "@/lib/investigation/session-context";
 import type { ApiCaseResult } from "@/types/api";
@@ -13,22 +15,24 @@ import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 export function ResultReveal({ caseFile }: { caseFile: Case }) {
   const reduced = usePrefersReducedMotion();
   const { sessionId, ready: sessionReady } = useInvestigationSession();
+  const { user, refreshProfile } = useAuth();
   const [result, setResult] = useState<ApiCaseResult | null>(null);
   const [status, setStatus] = useState<"loading" | "open" | "ready" | "error">("loading");
   const [message, setMessage] = useState("Opening the seal…");
   const accusationRaw = useSyncExternalStore(
     subscribeAccusation,
-    () => window.sessionStorage.getItem(`mysterybox.accusation.${caseFile.id}`),
+    () =>
+      user ? window.sessionStorage.getItem(accusationStorageKey(user.id, caseFile.id)) : null,
     () => null
   );
   const localAccusation = useMemo(() => {
-    if (!accusationRaw) return null;
+    if (!accusationRaw || !user) return null;
     try {
-      return JSON.parse(accusationRaw) as ReturnType<typeof loadAccusation>;
+      return loadAccusation(caseFile.id, user.id);
     } catch {
       return null;
     }
-  }, [accusationRaw]);
+  }, [accusationRaw, caseFile.id, user]);
 
   useEffect(() => {
     if (!sessionReady) return;
@@ -43,10 +47,11 @@ export function ResultReveal({ caseFile }: { caseFile: Case }) {
     let cancelled = false;
     setStatus("loading");
     getSessionResult(sessionId)
-      .then((data) => {
+      .then(async (data) => {
         if (cancelled) return;
         setResult(data);
         setStatus("ready");
+        await refreshProfile();
       })
       .catch((error: unknown) => {
         if (cancelled) return;
@@ -64,7 +69,7 @@ export function ResultReveal({ caseFile }: { caseFile: Case }) {
     return () => {
       cancelled = true;
     };
-  }, [sessionId, sessionReady]);
+  }, [sessionId, sessionReady, refreshProfile]);
 
   const accused =
     result?.submitted.suspectName ??

@@ -54,17 +54,25 @@ async function removeExistingCase() {
     return;
   }
 
+  const sessions = await supabase
+    .from("game_sessions")
+    .delete()
+    .eq("case_id", existing.data.id);
+  if (sessions.error) {
+    throw new Error(`Seed failed while clearing existing sessions: ${sessions.error.message}`);
+  }
+
   const groundTruth = await supabase
     .from("case_ground_truth")
     .delete()
     .eq("case_id", existing.data.id);
   if (groundTruth.error) {
-    throw new Error("Seed failed while clearing existing ground truth.");
+    throw new Error(`Seed failed while clearing existing ground truth: ${groundTruth.error.message}`);
   }
 
   const removed = await supabase.from("cases").delete().eq("id", existing.data.id);
   if (removed.error) {
-    throw new Error("Seed failed while clearing the existing case.");
+    throw new Error(`Seed failed while clearing the existing case: ${removed.error.message}`);
   }
 }
 
@@ -83,6 +91,9 @@ async function seed() {
       estimated_minutes: 25,
       cover_image_url: null,
       status: "published",
+      case_number: 1,
+      unlock_order: 1,
+      teaser: "A private supper at Blackwood Manor. The last guest never signed the letter.",
     })
   );
 
@@ -140,10 +151,10 @@ async function seed() {
         "Unlisted guest; arrived late claiming a private matter with Edmund",
       bio: "Little is recorded of Miss Hart. The guest book shows no prior visit. She arrived twenty minutes late, declined wine, and asked twice to see the conservatory before supper was finished. She claims a professional matter that could not wait until morning.",
       public_alibi:
-        "Says she was in the gallery studying the portraits when the clock struck eleven.",
+        "Says she last saw Edmund around 10:45 PM, then was in the gallery studying the portraits when the clock struck eleven.",
       portrait_url: null,
       personality:
-        "Self-possessed and economical with words. She watches doors more than faces, and does not drink when others do.",
+        "Self-possessed and economical with words. She watches doors more than faces, and does not drink when others do. If pressed on Edmund’s last hour she repeats a quarter to eleven and returns to the portraits.",
     },
   ];
 
@@ -156,11 +167,11 @@ async function seed() {
       title: "West Hallway Plate",
       type: "cctv",
       description:
-        "A house camera plate above the west corridor recorded a figure passing toward the conservatory at 11:08 PM. The face is lost to the lamp glare.",
+        "A house camera plate above the west corridor recorded a figure passing toward the conservatory at 11:08 PM. The face is lost to the lamp glare. The silhouette is slight, in the line of a dinner dress rather than a household staff uniform.",
       file_url: null,
       location_found: "West hallway, first floor",
       discovered_by_default: true,
-      is_red_herring: true,
+      is_red_herring: false,
       importance: "high",
     },
     {
@@ -234,7 +245,7 @@ async function seed() {
       title: "Unsigned Letter",
       type: "object",
       description:
-        "A letter on cream stock, half-finished, in Edmund’s hand. It begins “If you have come for what I kept—” and ends without a signature.",
+        "A letter on cream stock, half-finished, in Edmund’s hand, still on the conservatory blotter. It begins “If you have come for what I kept—” and ends without a signature.",
       file_url: null,
       location_found: "Conservatory writing table",
       discovered_by_default: true,
@@ -289,7 +300,7 @@ async function seed() {
         "A transfer of dark soil from the terrace beds, found on a woman’s hem near the conservatory threshold.",
       file_url: null,
       location_found: "Conservatory threshold",
-      discovered_by_default: false,
+      discovered_by_default: true,
       is_red_herring: false,
       importance: "high",
     },
@@ -328,7 +339,7 @@ async function seed() {
         "A partial left-hand print on the conservatory blotter beside the unfinished letter. It does not match the household staff set. The ink is still slightly tacky.",
       file_url: null,
       location_found: "Conservatory writing table",
-      discovered_by_default: false,
+      discovered_by_default: true,
       is_red_herring: false,
       importance: "high",
     },
@@ -391,7 +402,7 @@ async function seed() {
       sequence: 6,
       event_time: at("22:40"),
       public_description:
-        "Jonah Pike leaves the dining room with the silver and says he will be in the pantry until he is called.",
+        "Jonah Pike leaves the dining room with the silver and says he will be in the pantry until he is called. A kitchen boy later mentioned seeing him among the silver after he left the table.",
       hidden_description:
         "A kitchen boy saw him there at 10:47 and again at 11:12. The west hall is not visible from the pantry.",
       related_suspect_id: JONAH_ID,
@@ -401,7 +412,7 @@ async function seed() {
       sequence: 7,
       event_time: at("22:42"),
       public_description:
-        "Edmund Vale crosses the inner hall with a folded letter. The study lamp is lit.",
+        "Edmund Vale crosses the inner hall with a folded letter and pauses at the study desk. The study lamp is lit.",
       hidden_description:
         "He set his watch on the study blotter and did not take it with him. The lamp was put out six minutes later.",
       related_suspect_id: null,
@@ -431,9 +442,9 @@ async function seed() {
       sequence: 10,
       event_time: at("23:02"),
       public_description:
-        "A portrait light is found burning in the gallery. Isolde Hart says she was alone with the family pictures when the clock struck eleven.",
+        "A portrait light is found burning in the gallery. Isolde Hart says she was alone with the family pictures when the clock struck eleven. No other guest or servant stayed to watch the door.",
       hidden_description:
-        "The gallery door was heard to close again before 11:06. No one remained to confirm she stayed.",
+        "The gallery door was heard to close again before 11:06. She did not remain with the portraits.",
       related_suspect_id: ISOLDE_ID,
       related_evidence_id: null,
     },
@@ -441,9 +452,9 @@ async function seed() {
       sequence: 11,
       event_time: at("23:05"),
       public_description:
-        "A maid is asked, for the second time that night, the shortest way to the conservatory. She does not recall the speaker’s name.",
+        "A maid is asked, for the second time that night, the shortest way to the conservatory. She does not recall the speaker’s name, only that it was a woman — and not Clara, whom she already knew.",
       hidden_description:
-        "She later said the voice was a woman’s, and not Clara’s.",
+        "She would not swear to a name. The voice was familiar from the late arrival, not from the household.",
       related_suspect_id: ISOLDE_ID,
       related_evidence_id: EVIDENCE.soil,
     },
@@ -451,9 +462,9 @@ async function seed() {
       sequence: 12,
       event_time: at("23:08"),
       public_description:
-        "The west hallway plate records a figure moving toward the conservatory. The face is unreadable in the lamp glare.",
+        "The west hallway plate records a slight figure in dinner clothes moving toward the conservatory. The face is unreadable in the lamp glare. The outline is not a household staff uniform.",
       hidden_description:
-        "The silhouette is slighter than Pike’s and shows the line of a dinner dress, not a valet’s coat.",
+        "She kept to the lamp side of the corridor so the plate would take the glare, not the face.",
       related_suspect_id: ISOLDE_ID,
       related_evidence_id: EVIDENCE.cctv,
     },
@@ -499,7 +510,7 @@ async function seed() {
       time_of_crime: at("23:17"),
       location: "Conservatory, Blackwood Manor",
       solution_explanation:
-        "Isolde Hart was never on the supper card. She telephoned at 9:14 to stop Edmund signing whatever he had begun, then arrived late and asked twice for the conservatory. Her gallery alibi covers the stroke of eleven only; by 11:05 a woman who was not Clara asked again for the glasshouse, and at 11:08 the west plate recorded a slight figure in a dinner dress, not Pike. Edmund had already left his watch on the study desk at 10:42 and carried the unfinished letter west. In the conservatory she confronted him over the packet he kept. He would not sign. The cracked coupe was on the writing table; it was used as the instrument and left with only a pale wine residue. Soil from the terrace beds marked a woman’s hem. A partial print on the blotter is not staff. Clara’s champagne receipt, Rowe’s packed bag and vial, Pike’s pantry hour, the household glove, the missing study key, and the watch’s resting place in the study are all consistent with other people’s evenings — not with the blow. The true hour is 11:17 in the conservatory. Isolde Hart is the last guest.",
+        "Isolde Hart was never on the supper card. She telephoned at 9:14 — “Do not sign it until I arrive” — then arrived late and asked more than once for the conservatory. She says she last saw Edmund around 10:45 PM and was in the gallery when the clock struck eleven; no one stayed to confirm she remained there. At 11:05 a woman the maid knew was not Clara asked again for the shortest way to the glasshouse. At 11:08 the west plate recorded a slight figure in a dinner dress, not a staff uniform; the face is lost to glare. Edmund had already paused at the study desk and gone west with the unfinished letter; his watch was found left there, hands at 11:17. In the conservatory the letter stops mid-sentence on the blotter. The cracked coupe on the tiles holds only a pale wine residue — the instrument, not a poured poison. Dark soil from the terrace beds marks a woman’s hem at the threshold. A partial print on that blotter does not match the household staff. Clara’s champagne receipt and the missing second bottle, Rowe’s packed bag and the cloakroom hour, Pike’s pantry hour and the staff glove under the terrace, and the watch left in the study all belong to other people’s evenings. They do not outweigh the path to the glasshouse. The hour is 11:17 in the conservatory. Isolde Hart is the last guest.",
     })
   );
 

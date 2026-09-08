@@ -1,3 +1,5 @@
+import type { ArchiveStatus } from "@/types/api";
+
 export type CaseDifficulty = "Easy" | "Medium" | "Hard";
 
 export type CaseSuspect = {
@@ -14,6 +16,9 @@ export type CaseFile = {
   title: string;
   locked: boolean;
   comingSoon: boolean;
+  archiveStatus?: ArchiveStatus;
+  score?: number | null;
+  completedAt?: string | null;
   difficulty?: CaseDifficulty;
   duration?: string;
   suspectCount?: number;

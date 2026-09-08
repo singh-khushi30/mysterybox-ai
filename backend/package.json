@@ -7,13 +7,17 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "seed:blackwood": "tsx scripts/seed-blackwood-case.ts",
+    "seed:frequency": "tsx scripts/seed-dead-frequency.ts",
+    "seed:passenger": "tsx scripts/seed-passenger.ts",
+    "seed:archive": "tsx scripts/seed-dead-frequency.ts && tsx scripts/seed-passenger.ts",
     "index:knowledge": "tsx scripts/index-case-knowledge.ts",
     "test:retrieval": "tsx scripts/test-case-retrieval.ts",
     "test:interrogation": "tsx scripts/test-interrogation.ts",
     "test:graph": "tsx scripts/test-graph.ts",
     "test:accusation": "tsx scripts/test-accusation.ts",
     "test:auth": "tsx scripts/test-auth.ts",
-    "test:api": "tsx scripts/test-api.ts"
+    "test:api": "tsx scripts/test-api.ts",
+    "test:progression": "tsx scripts/test-progression.ts"
   },
   "dependencies": {
     "@google/genai": "^2.21.0",

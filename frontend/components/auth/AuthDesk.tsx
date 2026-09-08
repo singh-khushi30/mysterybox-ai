@@ -11,7 +11,15 @@ function safeNext(next?: string) {
   return next && next.startsWith("/") && !next.startsWith("//") ? next : null;
 }
 
-export function AuthDesk({ mode, next }: { mode: "login" | "signup"; next?: string }) {
+export function AuthDesk({
+  mode,
+  next,
+  reason,
+}: {
+  mode: "login" | "signup";
+  next?: string;
+  reason?: string;
+}) {
   const { signIn, signUp } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -19,7 +27,9 @@ export function AuthDesk({ mode, next }: { mode: "login" | "signup"; next?: stri
   const [displayName, setDisplayName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(
+    reason === "timeout" ? "Your session expired after 1 hour. Please log in again." : null
+  );
   const [showPassword, setShowPassword] = useState(false);
 
   const isSignup = mode === "signup";

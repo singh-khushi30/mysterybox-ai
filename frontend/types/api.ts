@@ -1,12 +1,20 @@
+export type ArchiveStatus = "locked" | "available" | "in_progress" | "completed";
+
 export type ApiCase = {
   id: string;
   title: string;
   slug: string;
   description: string;
+  teaser: string;
   difficulty: "easy" | "medium" | "hard";
   estimated_minutes: number;
   cover_image_url: string | null;
-  status: "draft" | "published" | "archived";
+  publicationStatus: "draft" | "published" | "archived";
+  caseNumber: number;
+  unlockOrder: number;
+  status: ArchiveStatus;
+  score: number | null;
+  completedAt: string | null;
   created_at: string;
 };
 
@@ -67,6 +75,7 @@ export type ApiSession = {
 
 export type ApiProfileStats = {
   completedCases: number;
+  totalCases: number;
   averageScore: number;
   accuracy: number;
   currentInvestigation: {
@@ -74,12 +83,16 @@ export type ApiProfileStats = {
     caseId: string;
     title: string;
     slug: string;
+    caseNumber?: number | null;
   } | null;
   recentlySolved: Array<{
     id: string;
+    caseId?: string;
     title: string;
     year: string;
+    completedAt?: string | null;
     score: number;
+    correct?: boolean;
   }>;
 };
 

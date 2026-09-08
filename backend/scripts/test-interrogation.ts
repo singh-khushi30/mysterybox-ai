@@ -37,7 +37,7 @@ async function askWithRetry(input: {
 }
 
 function leakedIsoldeSecret(text: string) {
-  return /gallery door was heard to close again before 11:06|dinner dress, not a valet/i.test(
+  return /gallery door was heard to close again before 11:06|kept to the lamp side of the corridor/i.test(
     text
   );
 }
@@ -82,8 +82,11 @@ async function main() {
       suspectName: "Isolde Hart",
       message: "When did you last see the victim?",
       verify: (reply: string) => ({
-        passed: !leakedGroundTruth(reply) && reply.length > 0,
-        detail: "Should answer in character without solving the case.",
+        passed:
+          !leakedGroundTruth(reply) &&
+          reply.length > 0 &&
+          /10:45|quarter to eleven|gallery|portrait/i.test(reply),
+        detail: "Should stay with her 10:45 last-seen claim or gallery hour without solving the case.",
       }),
     },
     {

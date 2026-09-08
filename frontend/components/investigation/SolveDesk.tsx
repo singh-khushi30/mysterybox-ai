@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { WaxSealButton } from "@/components/shared/WaxSealButton";
 import { Portrait } from "@/components/shared/Portrait";
 import { ApiError, submitAccusation } from "@/lib/api";
-import { MOTIVES, WEAPONS, saveAccusation } from "@/lib/investigation/solve";
+import { accusationOptions, saveAccusation } from "@/lib/investigation/solve";
 import { persistSession } from "@/lib/investigation/session";
 import { useAuth } from "@/lib/auth/context";
 import { useProgressCase } from "@/lib/investigation/progress-context";
@@ -16,9 +16,10 @@ import { cn } from "@/lib/utils";
 export function SolveDesk({ caseFile }: { caseFile: Case }) {
   const liveCase = useProgressCase(caseFile);
   const { sessionId, session, ready: sessionReady, setSession } = useInvestigationSession();
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const router = useRouter();
   const discovered = liveCase.evidence.filter((item) => item.discovered);
+  const { motives: MOTIVES, methods: WEAPONS } = accusationOptions(caseFile.id);
   const [suspectId, setSuspectId] = useState<string | null>(null);
   const [motive, setMotive] = useState<string | null>(null);
   const [weapon, setWeapon] = useState<string | null>(null);
@@ -169,7 +170,7 @@ export function SolveDesk({ caseFile }: { caseFile: Case }) {
               evidenceIds,
               reasoning: reasoning.trim(),
             };
-            saveAccusation(caseFile.id, payload);
+            saveAccusation(caseFile.id, payload, user?.id);
             submitAccusation(sessionId, {
               suspectId,
               motive,
@@ -177,9 +178,10 @@ export function SolveDesk({ caseFile }: { caseFile: Case }) {
               evidenceIds,
               reasoning: payload.reasoning,
             })
-              .then((result) => {
+              .then(async (result) => {
                 setSession(result.session);
                 if (user) persistSession(caseFile.id, result.session, user.id);
+                await refreshProfile();
                 router.push(`/cases/${caseFile.id}/investigate/result`);
               })
               .catch((cause: unknown) => {

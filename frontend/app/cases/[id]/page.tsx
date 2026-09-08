@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { CaseDossier } from "@/components/case/CaseDossier";
 import { DeskNotice } from "@/components/shared/DeskNotice";
-import { getComingSoonCase } from "@/lib/cases";
 import { loadCaseFile } from "@/lib/investigation/load";
 
 export default async function CasePage({
@@ -10,11 +9,6 @@ export default async function CasePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const sealed = getComingSoonCase(id);
-  if (sealed) {
-    return <CaseDossier caseFile={sealed} />;
-  }
-
   const result = await loadCaseFile(id);
   if (result.status === "not_found") notFound();
   if (result.status === "error") {

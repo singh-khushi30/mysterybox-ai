@@ -78,12 +78,22 @@ const CORRECT_MOTIVE_ALIASES = [
   "a letter edmund refused to return",
   "private correspondence",
   "unsigned letter",
+  "patents taken in a dawn sale",
+  "patent",
+  "annex c",
+  "papers that would ruin an employer",
+  "ministry telegram",
 ];
 
 const CORRECT_METHOD_ALIASES = [
   "broken champagne coupe",
   "champagne coupe",
   "the champagne coupe, already cracked",
+  "a blow with a spare condenser housing",
+  "condenser housing",
+  "aerial hatch",
+  "the passenger never boarded",
+  "the berth was staged",
 ];
 
 const REASONING_HINTS = [
@@ -98,6 +108,16 @@ const REASONING_HINTS = [
   "1117",
   "soil",
   "print",
+  "patent",
+  "hatch",
+  "oscillator",
+  "condenser",
+  "telegram",
+  "telegraph",
+  "ticket",
+  "platform",
+  "berth",
+  "manifest",
 ];
 
 function clamp(value: number, min: number, max: number) {
@@ -169,11 +189,22 @@ export function scoreEvidence(submittedIds: string[], catalog: ScoringEvidence[]
   };
 }
 
+function aliasApplies(player: string, aliases: string[], truthText: string) {
+  const expected = normalize(truthText);
+  return aliases.some((alias) => {
+    if (!matchesAlias(player, [alias])) return false;
+    const keys = normalize(alias)
+      .split(" ")
+      .filter((word) => word.length > 3);
+    return keys.length === 0 ? expected.includes(normalize(alias)) : keys.some((word) => expected.includes(word));
+  });
+}
+
 export function scoreMotiveDeterministic(motive: string, method: string, truth: GroundTruth) {
-  const motiveRatio = matchesAlias(motive, CORRECT_MOTIVE_ALIASES)
+  const motiveRatio = aliasApplies(motive, CORRECT_MOTIVE_ALIASES, truth.motive)
     ? 1
     : coverage(motive, truth.motive);
-  const methodRatio = matchesAlias(method, CORRECT_METHOD_ALIASES)
+  const methodRatio = aliasApplies(method, CORRECT_METHOD_ALIASES, truth.method)
     ? 1
     : coverage(method, truth.method);
 
@@ -186,8 +217,10 @@ export function scoreReasoningDeterministic(reasoning: string, truth: GroundTrut
   );
   const overlap = coverage(reasoning, expected);
   const haystack = normalize(reasoning);
-  const hintHits = REASONING_HINTS.filter((hint) => haystack.includes(hint)).length;
-  const hintRatio = hintHits / REASONING_HINTS.length;
+  const expectedNorm = normalize(expected);
+  const applicable = REASONING_HINTS.filter((hint) => expectedNorm.includes(hint));
+  const hintHits = applicable.filter((hint) => haystack.includes(hint)).length;
+  const hintRatio = applicable.length === 0 ? overlap : hintHits / applicable.length;
   return clampInt(REASONING_POINTS * (0.55 * overlap + 0.45 * hintRatio), 0, REASONING_POINTS);
 }
 

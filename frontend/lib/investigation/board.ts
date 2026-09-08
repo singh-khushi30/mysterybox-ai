@@ -101,6 +101,24 @@ export function buildBoardGraph(caseFile: Case, pinnedIds: string[]): {
   return { nodes: [...suspects, ...locations, ...evidence], edges };
 }
 
+export const RELATION_MARKS: Record<RelationLabel, string> = {
+  Related: "R",
+  "Seen With": "S",
+  Contradicts: "C",
+  Motive: "M",
+  Alibi: "A",
+  Evidence: "E",
+};
+
+export const RELATION_LEGEND = [
+  { mark: "R", label: "Related" },
+  { mark: "S", label: "Seen With" },
+  { mark: "C", label: "Contradicts" },
+  { mark: "M", label: "Motive" },
+  { mark: "A", label: "Alibi" },
+  { mark: "E", label: "Evidence" },
+] as const;
+
 export function nextRelation(current: RelationLabel | undefined): RelationLabel {
   const order: RelationLabel[] = [
     "Related",
@@ -112,4 +130,8 @@ export function nextRelation(current: RelationLabel | undefined): RelationLabel 
   ];
   const index = order.indexOf(current ?? "Related");
   return order[(index + 1) % order.length];
+}
+
+export function relationMark(current: RelationLabel | undefined) {
+  return RELATION_MARKS[current ?? "Related"];
 }

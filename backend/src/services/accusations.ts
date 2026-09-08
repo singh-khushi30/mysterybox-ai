@@ -136,7 +136,7 @@ async function completeSessionWithScore(sessionId: string, score: number, userId
     })
     .eq("id", sessionId)
     .eq("status", "in_progress")
-    .select("id, case_id, status, started_at, completed_at, score")
+    .select("id, case_id, user_id, status, started_at, completed_at, score")
     .maybeSingle();
 
   if (error) {
@@ -246,7 +246,13 @@ export async function submitAccusation(
     throw new HttpError(500, "Unable to seal the accusation");
   }
 
-  const closed = await completeSessionWithScore(sessionId, scored.total, userId);
+  let closed = await completeSessionWithScore(sessionId, scored.total, userId);
+  if (closed.status !== "completed") {
+    closed = await completeSessionWithScore(sessionId, scored.total, userId);
+  }
+  if (closed.status !== "completed") {
+    throw new HttpError(500, "The accusation was sealed, but the investigation could not be closed.");
+  }
   const ownerId = userId ?? session.user_id;
   if (ownerId) {
     await refreshDetectiveRank(ownerId);

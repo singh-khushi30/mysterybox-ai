@@ -49,11 +49,20 @@ export function extractMinutes(text: string) {
   }
 
   if (/\bhalf past ten\b/i.test(text)) values.add(22 * 60 + 30);
+  if (/\bquarter to eleven\b/i.test(text)) values.add(22 * 60 + 45);
   if (/\bclock struck eleven|struck eleven|eleven o'clock\b/i.test(text)) {
     values.add(23 * 60);
   }
 
   return [...values];
+}
+
+export function extractLastSeenMinutes(text: string) {
+  const window = text.match(
+    /(?:last (?:saw|seen)|had not seen|hadn't seen|did not see)[^.?!]{0,90}/i
+  );
+  if (!window) return null;
+  return extractMinutes(window[0])[0] ?? null;
 }
 
 export function claimsExclusiveStay(text: string) {

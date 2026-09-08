@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/context";
 
 export function AuthGate({ children }: { children: ReactNode }) {
-  const { user, ready } = useAuth();
+  const { user, ready, profileReady } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -16,7 +16,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     }
   }, [pathname, ready, router, user]);
 
-  if (!ready) {
+  if (!ready || (user && !profileReady)) {
     return (
       <main className="desk-blotter flex min-h-dvh items-center justify-center px-6">
         <p className="font-mono text-[0.68rem] tracking-[0.28em] text-brass uppercase">

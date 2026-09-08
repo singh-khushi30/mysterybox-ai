@@ -29,8 +29,61 @@ function check(title: string, passed: boolean, detail: string) {
   return { title, passed, detail };
 }
 
+async function assertFairPlayFacts() {
+  const [suspects, evidence, timeline, truth] = await Promise.all([
+    supabase.from("suspects").select("name, public_alibi, bio").eq("case_id", CASE_ID),
+    supabase
+      .from("evidence")
+      .select("title, description, discovered_by_default")
+      .eq("case_id", CASE_ID),
+    supabase
+      .from("timeline_events")
+      .select("public_description")
+      .eq("case_id", CASE_ID),
+    supabase.from("case_ground_truth").select("solution_explanation").eq("case_id", CASE_ID).maybeSingle(),
+  ]);
+
+  const visible = [
+    ...(suspects.data ?? []).flatMap((row) => [row.public_alibi, row.bio]),
+    ...(evidence.data ?? [])
+      .filter((row) => row.discovered_by_default)
+      .map((row) => `${row.title}. ${row.description}`),
+    ...(timeline.data ?? []).map((row) => row.public_description),
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const explanation = truth.data?.solution_explanation ?? "";
+  const required = [
+    { label: "plate dinner dress", pattern: /dinner dress|dinner clothes/i },
+    { label: "plate not staff", pattern: /staff uniform/i },
+    { label: "11:05 not Clara", pattern: /not Clara/i },
+    { label: "soil on a hem", pattern: /soil from the terrace beds/i },
+    { label: "blotter not staff", pattern: /does not match the household staff/i },
+    { label: "last saw 10:45", pattern: /10:45 PM/i },
+  ];
+
+  const missing = required.filter((item) => !item.pattern.test(visible));
+  const leftoverSecret =
+    /left his watch on the study desk at 10:42|door was heard to close again before 11:06/.test(
+      explanation
+    );
+
+  return {
+    passed: missing.length === 0 && Boolean(explanation) && !leftoverSecret,
+    detail:
+      missing.length > 0
+        ? `missing ${missing.map((item) => item.label).join(", ")}`
+        : leftoverSecret
+          ? "solution still cites secret-only facts"
+          : "solution claims are in player-visible text",
+  };
+}
+
 async function main() {
   const checks: Array<{ title: string; passed: boolean }> = [];
+  const fairPlay = await assertFairPlayFacts();
+  checks.push(check("Fair-play solution facts are player-visible", fairPlay.passed, fairPlay.detail));
 
   const hallucinated = validateSuspectReply({
     reply: "I saw Daniel enter the library at 10:42 PM.",
@@ -108,6 +161,29 @@ async function main() {
   });
   checks.push(check("Vague statement is not a contradiction", !noHit.detected, ""));
 
+  const lastSeenHit = detectContradiction({
+    statement: "I last saw Edmund around 10:45 PM.",
+    suspectId: ISOLDE_ID,
+    suspectName: "Isolde Hart",
+    facts: [
+      factFromText(
+        "evidence",
+        "West Hallway Plate. A slight figure in a dinner dress passed toward the conservatory at 11:08 PM.",
+        { evidenceId: CCTV_ID, minutes: 23 * 60 + 8, locationKeys: ["west_hall", "conservatory"] }
+      ),
+    ],
+  });
+  checks.push(
+    check(
+      "Last-seen claim conflicts with later conservatory movement",
+      lastSeenHit.detected &&
+        /10:45 PM/i.test(lastSeenHit.explanation) &&
+        /conservatory shortly after 11/i.test(lastSeenHit.explanation) &&
+        !/guilty|murderer|last guest/i.test(lastSeenHit.explanation),
+      lastSeenHit.explanation
+    )
+  );
+
   checks.push(
     check(
       "Graph cannot loop forever",
@@ -165,6 +241,22 @@ async function main() {
       "Consistent graph turn stores no contradiction",
       !consistentTurn.contradiction.detected,
       consistentTurn.suspect.content
+    )
+  );
+
+  const lastSeenTurn = await runInterrogationGraph({
+    sessionId,
+    suspectId: ISOLDE_ID,
+    message: "When did you last see Edmund?",
+    forcedReply: "I last saw Edmund around 10:45 PM.",
+  });
+  checks.push(
+    check(
+      "Graph surfaces Isolde last-seen contradiction from public facts",
+      lastSeenTurn.contradiction.detected &&
+        /last saw Edmund around 10:45 PM/i.test(lastSeenTurn.contradiction.explanation) &&
+        !/ground truth|last guest|murderer/i.test(lastSeenTurn.contradiction.explanation),
+      lastSeenTurn.contradiction.explanation
     )
   );
 

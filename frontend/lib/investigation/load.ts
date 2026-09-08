@@ -10,7 +10,9 @@ import {
   getSuspect,
   resolveCaseId,
 } from "@/lib/api";
+import { createServerSupabase } from "@/lib/supabase/server";
 import { nightFromTimeline, toCaseFile, toInvestigation } from "@/lib/investigation/from-api";
+import type { ApiCase } from "@/types/api";
 import type { CaseFile } from "@/types/case";
 import type { Case, Suspect } from "@/types/investigation";
 
@@ -18,6 +20,16 @@ export type LoadResult<T> =
   | { status: "ok"; data: T }
   | { status: "not_found" }
   | { status: "error"; message: string };
+
+async function serverAccessToken() {
+  try {
+    const supabase = await createServerSupabase();
+    const { data } = await supabase.auth.getSession();
+    return data.session?.access_token ?? null;
+  } catch {
+    return null;
+  }
+}
 
 function asLoadError(error: unknown): LoadResult<never> {
   if (error instanceof ApiError && error.status === 404) {
@@ -29,16 +41,28 @@ function asLoadError(error: unknown): LoadResult<never> {
   return { status: "error", message: "The file could not be opened." };
 }
 
+function archiveFile(item: ApiCase, index: number): CaseFile {
+  return toCaseFile(item, index, [], [], publicRoute(item));
+}
+
+function publicRoute(item: ApiCase) {
+  return String(item.caseNumber).padStart(3, "0");
+}
+
 export const loadPlayableCases = cache(async (): Promise<LoadResult<CaseFile[]>> => {
   try {
-    const cases = await getCases();
+    const token = await serverAccessToken();
+    const cases = await getCases(token);
     const files = await Promise.all(
       cases.map(async (item, index) => {
+        if (item.status === "locked") {
+          return archiveFile(item, index);
+        }
         const [suspects, evidence] = await Promise.all([
-          getCaseSuspects(item.id),
-          getCaseEvidence(item.id),
+          getCaseSuspects(item.id, token),
+          getCaseEvidence(item.id, token),
         ]);
-        return toCaseFile(item, index, suspects, evidence);
+        return toCaseFile(item, index, suspects, evidence, publicRoute(item));
       })
     );
     return { status: "ok", data: files };
@@ -49,19 +73,21 @@ export const loadPlayableCases = cache(async (): Promise<LoadResult<CaseFile[]>>
 
 export const loadCaseFile = cache(async (idOrSlug: string): Promise<LoadResult<CaseFile>> => {
   try {
-    const caseId = await resolveCaseId(idOrSlug);
+    const token = await serverAccessToken();
+    const catalog = await getCases(token);
+    const caseId = await resolveCaseId(idOrSlug, token);
     if (!caseId) return { status: "not_found" };
-    const [item, suspects, evidence, timeline, catalog] = await Promise.all([
-      getCase(caseId),
-      getCaseSuspects(caseId),
-      getCaseEvidence(caseId),
-      getCaseTimeline(caseId),
-      getCases(),
+    const listed = catalog.find((entry) => entry.id === caseId);
+    const index = Math.max(0, catalog.findIndex((entry) => entry.id === caseId));
+    if (listed?.status === "locked") {
+      return { status: "ok", data: archiveFile(listed, index) };
+    }
+    const [item, suspects, evidence, timeline] = await Promise.all([
+      getCase(caseId, token),
+      getCaseSuspects(caseId, token),
+      getCaseEvidence(caseId, token),
+      getCaseTimeline(caseId, token),
     ]);
-    const index = Math.max(
-      0,
-      catalog.findIndex((entry) => entry.id === item.id)
-    );
     return {
       status: "ok",
       data: toCaseFile(
@@ -80,14 +106,15 @@ export const loadCaseFile = cache(async (idOrSlug: string): Promise<LoadResult<C
 
 export const loadInvestigation = cache(async (idOrSlug: string): Promise<LoadResult<Case>> => {
   try {
-    const caseId = await resolveCaseId(idOrSlug);
+    const token = await serverAccessToken();
+    const caseId = await resolveCaseId(idOrSlug, token);
     if (!caseId) return { status: "not_found" };
     const [item, suspects, evidence, timeline, catalog] = await Promise.all([
-      getCase(caseId),
-      getCaseSuspects(caseId),
-      getCasePublicEvidence(caseId),
-      getCaseTimeline(caseId),
-      getCases(),
+      getCase(caseId, token),
+      getCaseSuspects(caseId, token),
+      getCasePublicEvidence(caseId, token),
+      getCaseTimeline(caseId, token),
+      getCases(token),
     ]);
     const index = Math.max(
       0,
@@ -114,7 +141,8 @@ export const loadSuspectForCase = cache(
     if (!listed) return { status: "not_found" };
 
     try {
-      const apiSuspect = await getSuspect(suspectId);
+      const token = await serverAccessToken();
+      const apiSuspect = await getSuspect(suspectId, token);
       return {
         status: "ok",
         data: {

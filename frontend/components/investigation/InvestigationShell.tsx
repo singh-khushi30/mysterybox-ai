@@ -11,7 +11,7 @@ import { DustMotes } from "@/components/shared/DustMotes";
 import { getInvestigationStats } from "@/lib/investigation";
 import { InvestigationProgressProvider, useProgressCase } from "@/lib/investigation/progress-context";
 import { AuthGate } from "@/components/auth/AuthGate";
-import { InvestigationSessionProvider } from "@/lib/investigation/session-context";
+import { InvestigationSessionProvider, useInvestigationSession } from "@/lib/investigation/session-context";
 import type { Case } from "@/types/investigation";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { cn } from "@/lib/utils";
@@ -49,7 +49,8 @@ function InvestigationDesk({
     () => false
   );
   const liveCase = useProgressCase(caseFile);
-  const stats = getInvestigationStats(liveCase);
+  const { session } = useInvestigationSession();
+  const stats = getInvestigationStats(liveCase, { sessionStatus: session?.status });
   const fullCanvas =
     pathname.includes("/board") ||
     pathname.includes("/interrogate") ||

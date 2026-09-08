@@ -3,9 +3,12 @@ import { getCase, getCases } from "../controllers/cases.js";
 import { getCaseEvidence, getCasePublicEvidence } from "../controllers/evidence.js";
 import { getCaseSuspects } from "../controllers/suspects.js";
 import { getCaseTimeline } from "../controllers/timeline.js";
+import { optionalAuth } from "../middleware/auth.js";
 import { asyncHandler } from "../middleware/error.js";
 
 export const casesRouter = Router();
+
+casesRouter.use(asyncHandler(optionalAuth));
 
 casesRouter.get("/", asyncHandler(getCases));
 casesRouter.get("/:id/suspects", asyncHandler(getCaseSuspects));
