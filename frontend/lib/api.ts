@@ -26,35 +26,49 @@ export class ApiError extends Error {
   }
 }
 
+const SERVICE_PREFIX = "/api/backend";
+
+function isAbsoluteUrl(value: string) {
+  return /^https?:\/\//i.test(value);
+}
+
+function isLoopbackUrl(value: string) {
+  return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(value);
+}
+
 function apiBase() {
   const configured = process.env.NEXT_PUBLIC_API_URL?.trim().replace(/\/$/, "") ?? "";
-  if (/^https?:\/\//i.test(configured)) {
-    return configured;
-  }
-
-  // Same-origin /api/... matches Express and the Vercel rewrite.
-  // A leftover /api/backend base would produce /api/backend/api/...
-  const prefix = configured === "/api/backend" ? "" : configured;
 
   if (typeof window !== "undefined") {
-    return prefix;
-  }
-
-  const boundBackend = process.env.BACKEND_URL?.replace(/\/$/, "");
-  if (boundBackend) {
-    return boundBackend;
-  }
-
-  const vercelHost = process.env.VERCEL_URL?.replace(/\/$/, "");
-  if (vercelHost) {
-    return `https://${vercelHost}${prefix}`;
-  }
-
-  if (!configured) {
+    const host = window.location.hostname;
+    if (host !== "localhost" && host !== "127.0.0.1") {
+      return SERVICE_PREFIX;
+    }
+    if (isAbsoluteUrl(configured)) {
+      return configured;
+    }
     throw new ApiError("The archive address is not configured.", 500);
   }
 
-  return prefix;
+  if (process.env.VERCEL) {
+    const vercelHost = process.env.VERCEL_URL?.replace(/\/$/, "");
+    if (vercelHost) {
+      return `https://${vercelHost}${SERVICE_PREFIX}`;
+    }
+    const boundBackend = process.env.BACKEND_URL?.replace(/\/$/, "");
+    if (boundBackend) {
+      return boundBackend;
+    }
+  }
+
+  if (isAbsoluteUrl(configured) && !isLoopbackUrl(configured)) {
+    return configured;
+  }
+  if (isAbsoluteUrl(configured)) {
+    return configured;
+  }
+
+  throw new ApiError("The archive address is not configured.", 500);
 }
 
 type RequestOptions = RequestInit & { accessToken?: string | null };

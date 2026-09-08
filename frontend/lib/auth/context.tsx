@@ -16,6 +16,7 @@ import type { ApiProfile } from "@/types/api";
 type AuthContextValue = {
   user: User | null;
   profile: ApiProfile | null;
+  profileError: string | null;
   ready: boolean;
   profileReady: boolean;
   signIn: (email: string, password: string) => Promise<void>;
@@ -27,6 +28,7 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue>({
   user: null,
   profile: null,
+  profileError: null,
   ready: false,
   profileReady: false,
   signIn: async () => undefined,
@@ -39,6 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const supabase = useMemo(() => createBrowserSupabase(), []);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<ApiProfile | null>(null);
+  const [profileError, setProfileError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [profileReady, setProfileReady] = useState(false);
   const userRef = useRef<User | null>(null);
@@ -48,8 +51,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const next = await getProfile();
       setProfile(next);
-    } catch {
+      setProfileError(null);
+    } catch (error) {
       setProfile(null);
+      setProfileError(error instanceof Error ? error.message : "The bureau could not be reached.");
     } finally {
       setProfileReady(true);
     }
@@ -60,6 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearUserSessionKeys(current?.id);
     clearAuthIssued(current?.id);
     setProfile(null);
+    setProfileError(null);
     setProfileReady(true);
     setUser(null);
     await supabase.auth.signOut();
@@ -109,6 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) {
       void Promise.resolve().then(() => {
         setProfile(null);
+        setProfileError(null);
         setProfileReady(true);
       });
       return;
@@ -142,6 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         profile,
+        profileError,
         ready,
         profileReady,
         async signIn(email, password) {

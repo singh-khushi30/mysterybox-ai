@@ -2,6 +2,8 @@
 
 **An AI-powered interactive detective archive.** Players open case files, interrogate suspects, connect evidence, surface contradictions, and seal a final accusation — while the LLM never owns the truth of the case.
 
+**Live:** [https://mysterybox-ai.vercel.app/](https://mysterybox-ai.vercel.app/)
+
 ---
 
 ## 1. Project Overview
@@ -120,7 +122,11 @@ Case #001 is available to every authenticated detective. Completing a session (a
 
 ### Deployment
 
-There is no committed production host config in this repository (no `vercel.json`, no deploy workflow). The Next.js app is compatible with Vercel-style hosting; the Express API is a separate Node process. The project is **not** documented here as already live.
+| | |
+| --- | --- |
+| Host | Vercel Services (Next.js frontend + Express backend) |
+| Live | [https://mysterybox-ai.vercel.app/](https://mysterybox-ai.vercel.app/) |
+| Config | Root `vercel.json` |
 
 ---
 
@@ -508,7 +514,7 @@ Optional:
 | --- | --- |
 | `GOOGLE_API_KEY` | Alias for `GEMINI_API_KEY` |
 | `GEMINI_CHAT_MODEL` | Override chat model (default `gemini-3.5-flash`) |
-| `FRONTEND_ORIGIN` | Comma-separated CORS allowlist |
+| `FRONTEND_ORIGIN` | Comma-separated CORS allowlist. Local: `http://localhost:3000`. Production: `https://mysterybox-ai.vercel.app` |
 | `ACCUSATION_SKIP_GEMINI` | Set to `1` to skip Gemini on motive/reasoning scores (used in tests) |
 
 `SUPABASE_SECRET_KEY` and `GEMINI_API_KEY` must stay on the server.
@@ -596,9 +602,11 @@ There is no published coverage percentage in this repository.
 
 ## 19. Deployment
 
-This repo does not record a live production URL. Root `vercel.json` defines two Vercel services: Next.js in `frontend/`, Express in `backend/` (`src/index.ts`). Public `/api/*` traffic is rewritten to the backend; everything else goes to the frontend.
+**Live:** [https://mysterybox-ai.vercel.app/](https://mysterybox-ai.vercel.app/)
 
-On Vercel, the frontend calls same-origin `/api/...`, which matches Express. Local development is unchanged: set `NEXT_PUBLIC_API_URL` to the Express origin (for example `http://localhost:5050`).
+Root `vercel.json` defines two Vercel services: Next.js in `frontend/`, Express in `backend/` (`src/index.ts`). Public `/api/backend/*` traffic is rewritten to the backend; everything else goes to the frontend.
+
+On Vercel, the frontend calls same-origin `/api/backend` plus Express paths such as `/api/cases`, so the public URL is `/api/backend/api/cases`. Express strips `/api/backend` and serves `/api/cases`. Local development is unchanged: set `NEXT_PUBLIC_API_URL` to the Express origin (for example `http://localhost:5050`).
 
 In the Vercel project, set the framework to **Services**. Configure these names (no values belong in git):
 
@@ -606,16 +614,16 @@ In the Vercel project, set the framework to **Services**. Configure these names 
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
-- `NEXT_PUBLIC_API_URL` — required locally; leave unset on Vercel (same-origin `/api`)
+- `NEXT_PUBLIC_API_URL` — required locally; leave unset on Vercel. Do not set this to `localhost`.
 
 **Backend service**
 
 - `SUPABASE_URL`
 - `SUPABASE_SECRET_KEY`
 - `GEMINI_API_KEY`
-- `FRONTEND_ORIGIN` — production frontend origin (comma-separated if more than one)
+- `FRONTEND_ORIGIN` — production frontend origin (`https://mysterybox-ai.vercel.app`, comma-separated if more than one)
 
-Also in Supabase: apply migrations, enable Email auth, and add the production URL to Auth redirect allowlists (`/login`, `/signup`, and `?next=` paths).
+Also in Supabase: apply migrations, enable Email auth, and add `https://mysterybox-ai.vercel.app` to Auth redirect allowlists (`/login`, `/signup`, and `?next=` paths).
 
 Do not ship the service role key or Gemini key to the frontend service.
 

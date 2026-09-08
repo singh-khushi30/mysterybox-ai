@@ -18,7 +18,7 @@ export function DetectiveProfile() {
 }
 
 function ProfileDesk() {
-  const { profile, signOut, refreshProfile } = useAuth();
+  const { profile, profileError, signOut, refreshProfile } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -56,6 +56,22 @@ function ProfileDesk() {
           </button>
         </div>
 
+        {profileError ? (
+          <section className="mt-16 max-w-xl">
+            <h1 className="font-display text-4xl text-paper">The bureau is silent</h1>
+            <p className="mt-4 font-display text-lg text-beige/65 italic">{profileError}</p>
+            <button
+              type="button"
+              onClick={() => {
+                void refreshProfile();
+              }}
+              className="mt-8 font-mono text-[0.68rem] tracking-[0.22em] text-brass uppercase hover:text-paper"
+            >
+              Try the register again
+            </button>
+          </section>
+        ) : (
+          <>
         <div className="mt-8 flex flex-col gap-8 md:flex-row md:items-end">
           <Portrait initials={initialsFromDisplayName(name)} className="h-40 w-32 text-4xl" />
           <div>
@@ -70,11 +86,7 @@ function ProfileDesk() {
         <section className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Stat
             label="Completed cases"
-            value={
-              stats
-                ? `${stats.completedCases} / ${stats.totalCases || stats.completedCases}`
-                : "0 / 0"
-            }
+            value={`${stats?.completedCases ?? 0} / ${stats?.totalCases ?? 0}`}
           />
           <Stat label="Accuracy" value={`${stats?.accuracy ?? 0}%`} />
           <Stat label="Average score" value={String(stats?.averageScore ?? 0)} />
@@ -158,6 +170,8 @@ function ProfileDesk() {
             </ul>
           </div>
         </section>
+          </>
+        )}
       </div>
     </main>
   );
