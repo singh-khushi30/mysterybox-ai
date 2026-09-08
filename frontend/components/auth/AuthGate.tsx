@@ -1,40 +1,47 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { Suspense, useEffect, type ReactNode } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth/context";
 
-export function AuthGate({ children }: { children: ReactNode }) {
+function GateNotice({ label }: { label: string }) {
+  return (
+    <main className="desk-blotter flex min-h-dvh items-center justify-center px-6">
+      <p className="font-mono text-[0.68rem] tracking-[0.28em] text-brass uppercase">{label}</p>
+    </main>
+  );
+}
+
+function AuthGateInner({ children }: { children: ReactNode }) {
   const { user, ready, profileReady } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     if (!ready) return;
     if (!user) {
-      router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+      const search = searchParams.toString();
+      const next = `${pathname}${search ? `?${search}` : ""}`;
+      router.replace(`/login?next=${encodeURIComponent(next)}`);
     }
-  }, [pathname, ready, router, user]);
+  }, [pathname, ready, router, searchParams, user]);
 
   if (!ready || (user && !profileReady)) {
-    return (
-      <main className="desk-blotter flex min-h-dvh items-center justify-center px-6">
-        <p className="font-mono text-[0.68rem] tracking-[0.28em] text-brass uppercase">
-          Opening the register…
-        </p>
-      </main>
-    );
+    return <GateNotice label="Opening the register…" />;
   }
 
   if (!user) {
-    return (
-      <main className="desk-blotter flex min-h-dvh items-center justify-center px-6">
-        <p className="font-mono text-[0.68rem] tracking-[0.28em] text-brass uppercase">
-          Redirecting to the door…
-        </p>
-      </main>
-    );
+    return <GateNotice label="Redirecting to the door…" />;
   }
 
   return <>{children}</>;
+}
+
+export function AuthGate({ children }: { children: ReactNode }) {
+  return (
+    <Suspense fallback={<GateNotice label="Opening the register…" />}>
+      <AuthGateInner>{children}</AuthGateInner>
+    </Suspense>
+  );
 }

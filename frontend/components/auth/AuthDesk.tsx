@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { WaxSealButton } from "@/components/shared/WaxSealButton";
 import { useAuth } from "@/lib/auth/context";
@@ -20,7 +20,7 @@ export function AuthDesk({
   next?: string;
   reason?: string;
 }) {
-  const { signIn, signUp } = useAuth();
+  const { user, ready, signIn, signUp } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -37,6 +37,12 @@ export function AuthDesk({
   const destination = nextPath ?? "/cases";
   const loginHref = nextPath ? `/login?next=${encodeURIComponent(nextPath)}` : "/login";
   const signupHref = nextPath ? `/signup?next=${encodeURIComponent(nextPath)}` : "/signup";
+
+  useEffect(() => {
+    if (ready && user) {
+      router.replace(destination);
+    }
+  }, [destination, ready, router, user]);
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();

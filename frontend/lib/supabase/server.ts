@@ -2,6 +2,16 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { supabasePublishableKey, supabaseUrl } from "@/lib/supabase/env";
 
+export async function getServerUser() {
+  try {
+    const supabase = await createServerSupabase();
+    const { data } = await supabase.auth.getUser();
+    return data.user ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function createServerSupabase() {
   const cookieStore = await cookies();
   return createServerClient(supabaseUrl(), supabasePublishableKey(), {
@@ -15,7 +25,7 @@ export async function createServerSupabase() {
             cookieStore.set(name, value, options);
           });
         } catch {
-          // Server components cannot always write cookies; middleware refreshes them.
+          // Server Components cannot always write cookies; the browser client refreshes them.
         }
       },
     },
