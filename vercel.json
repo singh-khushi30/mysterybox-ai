@@ -15,13 +15,9 @@
     "backend": {
       "root": "backend/",
       "framework": "express",
-      "entrypoint": "src/index.ts",
+      "entrypoint": "api/index.cjs",
       "installCommand": "npm install",
-      "functions": {
-        "src/index.ts": {
-          "includeFiles": "node_modules/**"
-        }
-      }
+      "buildCommand": "npm run build:vercel"
     }
   },
   "rewrites": [

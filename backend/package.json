@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
+    "build:vercel": "esbuild src/index.ts --bundle --platform=node --target=node20 --format=cjs --outfile=api/index.cjs --legal-comments=none --footer:js='module.exports = module.exports.default || module.exports;'",
     "start": "node dist/index.js",
     "seed:blackwood": "tsx scripts/seed-blackwood-case.ts",
     "seed:frequency": "tsx scripts/seed-dead-frequency.ts",
@@ -40,6 +41,7 @@
     "@types/morgan": "^1.9.10",
     "@types/node": "^26.3.0",
     "@types/ws": "^8.18.1",
+    "esbuild": "^0.25.12",
     "tsx": "^4.23.12",
     "typescript": "^5.9.3"
   }
