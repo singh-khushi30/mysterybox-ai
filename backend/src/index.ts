@@ -1,3 +1,8 @@
+import "cors";
+import "dotenv";
+import "express";
+import "helmet";
+import "morgan";
 import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
@@ -5,6 +10,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 import { getSupabase } from "./config/supabase.js";
 import { errorHandler } from "./middleware/error.js";
+import { apiRouter } from "./routes/index.js";
 import { fail } from "./utils/http.js";
 
 dotenv.config();
@@ -82,16 +88,7 @@ app.get("/api/db-status", async (_req, res) => {
   }
 });
 
-app.use("/api", (req, res, next) => {
-  void import("./routes/index.js")
-    .then(({ apiRouter }) => {
-      apiRouter(req, res, next);
-    })
-    .catch((error: unknown) => {
-      console.error("Failed to load API routes.");
-      next(error);
-    });
-});
+app.use("/api", apiRouter);
 
 app.use("/api", (_req, res) => {
   res.status(404).json(fail("Not found"));

@@ -15,7 +15,13 @@
     "backend": {
       "root": "backend/",
       "framework": "express",
-      "entrypoint": "src/index.ts"
+      "entrypoint": "src/index.ts",
+      "installCommand": "npm install",
+      "functions": {
+        "src/index.ts": {
+          "includeFiles": "node_modules/**"
+        }
+      }
     }
   },
   "rewrites": [
