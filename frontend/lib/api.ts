@@ -91,6 +91,16 @@ async function request<T>(path: string, init?: RequestOptions): Promise<T> {
     throw new ApiError("The bureau could not be reached.", 503);
   }
 
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) {
+    throw new ApiError(
+      response.status >= 500
+        ? "The bureau failed to open the file."
+        : "The bureau sent an unreadable file.",
+      response.status
+    );
+  }
+
   let payload: ApiSuccess<T> | ApiFailure;
   try {
     payload = (await response.json()) as ApiSuccess<T> | ApiFailure;

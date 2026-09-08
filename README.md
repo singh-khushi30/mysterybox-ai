@@ -616,7 +616,7 @@ In the Vercel project, set the framework to **Services**. Configure these names 
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 - `NEXT_PUBLIC_API_URL` — required locally; leave unset on Vercel. Do not set this to `localhost`.
 
-**Backend service**
+**Backend service** (must be attached to the Express service, not only the frontend)
 
 - `SUPABASE_URL`
 - `SUPABASE_SECRET_KEY`
