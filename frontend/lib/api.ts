@@ -26,18 +26,23 @@ export class ApiError extends Error {
   }
 }
 
-const VERCEL_BACKEND_PREFIX = "/api/backend";
-
 function apiBase() {
-  const configured = process.env.NEXT_PUBLIC_API_URL?.trim().replace(/\/$/, "");
-  if (configured && /^https?:\/\//i.test(configured)) {
+  const configured = process.env.NEXT_PUBLIC_API_URL?.trim().replace(/\/$/, "") ?? "";
+  if (/^https?:\/\//i.test(configured)) {
     return configured;
   }
 
-  const prefix = configured?.startsWith("/") ? configured : VERCEL_BACKEND_PREFIX;
+  // Same-origin /api/... matches Express and the Vercel rewrite.
+  // A leftover /api/backend base would produce /api/backend/api/...
+  const prefix = configured === "/api/backend" ? "" : configured;
 
   if (typeof window !== "undefined") {
     return prefix;
+  }
+
+  const boundBackend = process.env.BACKEND_URL?.replace(/\/$/, "");
+  if (boundBackend) {
+    return boundBackend;
   }
 
   const vercelHost = process.env.VERCEL_URL?.replace(/\/$/, "");

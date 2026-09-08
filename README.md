@@ -596,17 +596,17 @@ There is no published coverage percentage in this repository.
 
 ## 19. Deployment
 
-This repo does not record a live production URL. Root `vercel.json` defines two Vercel services: Next.js in `frontend/`, Express in `backend/`. Public API traffic is rewritten from `/api/backend` to the backend service; everything else goes to the frontend.
+This repo does not record a live production URL. Root `vercel.json` defines two Vercel services: Next.js in `frontend/`, Express in `backend/` (`src/index.ts`). Public `/api/*` traffic is rewritten to the backend; everything else goes to the frontend.
 
-On Vercel, the frontend can call the API at `/api/backend` (same origin). Express still serves `/api/...` after that prefix is stripped. Local development is unchanged: set `NEXT_PUBLIC_API_URL` to the Express origin (for example `http://localhost:5050`).
+On Vercel, the frontend calls same-origin `/api/...`, which matches Express. Local development is unchanged: set `NEXT_PUBLIC_API_URL` to the Express origin (for example `http://localhost:5050`).
 
-Configure these names in the Vercel project (no values belong in git):
+In the Vercel project, set the framework to **Services**. Configure these names (no values belong in git):
 
 **Frontend service**
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
-- `NEXT_PUBLIC_API_URL` — optional on Vercel (defaults to `/api/backend`); required locally
+- `NEXT_PUBLIC_API_URL` — required locally; leave unset on Vercel (same-origin `/api`)
 
 **Backend service**
 
@@ -614,7 +614,6 @@ Configure these names in the Vercel project (no values belong in git):
 - `SUPABASE_SECRET_KEY`
 - `GEMINI_API_KEY`
 - `FRONTEND_ORIGIN` — production frontend origin (comma-separated if more than one)
-- `PORT` — provided by Vercel for the web service
 
 Also in Supabase: apply migrations, enable Email auth, and add the production URL to Auth redirect allowlists (`/login`, `/signup`, and `?next=` paths).
 

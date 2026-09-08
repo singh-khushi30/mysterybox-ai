@@ -99,20 +99,24 @@ function isSupabaseReachable(code: string | undefined, message: string): boolean
   return /could not find the table|does not exist|schema cache/i.test(message);
 }
 
-const server = app.listen(port, () => {
-  console.log(`MysteryBox API listening on http://localhost:${port}`);
-});
+export default app;
 
-server.on("error", (error: NodeJS.ErrnoException) => {
-  if (error.code === "EADDRINUSE") {
-    console.error(`Port ${port} is already in use.`);
-    if (port === 5000) {
-      console.error(
-        "On macOS, port 5000 is often taken by AirPlay Receiver. Turn it off in System Settings → General → AirDrop & Handoff, or start with PORT=5050 npm run dev."
-      );
+if (!process.env.VERCEL) {
+  const server = app.listen(port, () => {
+    console.log(`MysteryBox API listening on http://localhost:${port}`);
+  });
+
+  server.on("error", (error: NodeJS.ErrnoException) => {
+    if (error.code === "EADDRINUSE") {
+      console.error(`Port ${port} is already in use.`);
+      if (port === 5000) {
+        console.error(
+          "On macOS, port 5000 is often taken by AirPlay Receiver. Turn it off in System Settings → General → AirDrop & Handoff, or start with PORT=5050 npm run dev."
+        );
+      }
+      process.exit(1);
     }
-    process.exit(1);
-  }
 
-  throw error;
-});
+    throw error;
+  });
+}
